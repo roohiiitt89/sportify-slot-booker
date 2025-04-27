@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ const Home: React.FC = () => {
   const [selectedSport, setSelectedSport] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
 
-  // Rotate quotes every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentQuoteIndex((prevIndex) => 
@@ -34,7 +32,6 @@ const Home: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       <NavBar />
       
-      {/* Hero Section with Video Background */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="video-container">
           <video autoPlay loop muted playsInline className="w-full h-full object-cover">
@@ -63,41 +60,42 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Featured Venues Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Venues</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800">
+              Featured <span className="text-sports-green">Venues</span>
+            </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Discover premium sports facilities designed for exceptional experiences
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {venues.map((venue, index) => (
               <div 
                 key={venue.id} 
-                className="venue-card group" 
+                className="venue-card transform transition-all duration-300 hover:scale-105"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <img 
                   src={venue.image} 
                   alt={venue.name} 
-                  className="w-full h-64 object-cover"
+                  className="w-full h-64 object-cover rounded-2xl"
                 />
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
-                  <h3 className="text-xl font-bold mb-1">{venue.name}</h3>
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-b-2xl">
+                  <h3 className="text-xl font-bold mb-2">{venue.name}</h3>
                   <p className="text-sm text-white/90 mb-3">{venue.location}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
-                      <span className="text-sports-orange">★</span>
+                      <span className="text-sports-green">★</span>
                       <span className="text-sm">{venue.rating}</span>
                     </div>
                     <Button 
                       onClick={() => openBookingModal(undefined, venue.name)}
                       variant="secondary"
                       size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-sports-navy hover:bg-sports-green hover:text-white"
+                      className="bg-white text-gray-800 hover:bg-sports-green hover:text-white transition-colors"
                     >
                       Book Now
                     </Button>
@@ -109,11 +107,12 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Featured Sports Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Sports</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-800">
+              Featured <span className="text-sports-green">Sports</span>
+            </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Find your favorite sport and book a slot today
             </p>
@@ -123,7 +122,7 @@ const Home: React.FC = () => {
             {sports.map((sport, index) => (
               <div 
                 key={sport.id}
-                className="sport-card group bg-white rounded-xl overflow-hidden shadow-lg"
+                className="sport-card overflow-hidden rounded-2xl bg-white shadow-lg transform transition-all duration-300 hover:scale-105"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="relative h-48">
@@ -133,14 +132,14 @@ const Home: React.FC = () => {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 </div>
-                <div className="p-5">
+                <div className="p-6">
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xl font-bold">{sport.name}</h3>
-                    <div className="text-sm bg-sports-green/10 text-sports-green py-1 px-2 rounded-full">
+                    <h3 className="text-xl font-bold text-gray-800">{sport.name}</h3>
+                    <div className="text-sm bg-sports-green/10 text-sports-green py-1 px-3 rounded-full">
                       {sport.popularity}% Popular
                     </div>
                   </div>
-                  <p className="text-gray-600 mb-4">{sport.description}</p>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{sport.description}</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {sport.venues.map(venue => (
                       <span 
@@ -153,7 +152,7 @@ const Home: React.FC = () => {
                   </div>
                   <Button 
                     onClick={() => openBookingModal(sport.name)}
-                    className="w-full bg-sports-navy hover:bg-sports-green"
+                    className="w-full bg-sports-green hover:bg-sports-green/90 text-white"
                   >
                     Book a Session
                   </Button>
@@ -164,7 +163,6 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* For You Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -174,7 +172,6 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          {/* This would typically use user data for personalized recommendations */}
           <div className="bg-gradient-to-br from-sports-navy to-sports-blue rounded-2xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-6">Your Recommendations</h3>
             <p className="mb-4">Sign in to see personalized recommendations based on your booking history and preferences.</p>
@@ -205,7 +202,6 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Sports Quotes Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -239,7 +235,6 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* CTA Section */}
       <section className="py-20 bg-sports-navy text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Book Your Next Game?</h2>
@@ -256,7 +251,6 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Footer */}
       <footer className="bg-sports-navy text-white py-12 border-t border-white/10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -299,7 +293,6 @@ const Home: React.FC = () => {
         </div>
       </footer>
       
-      {/* Booking Modal */}
       <BookingModal 
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
