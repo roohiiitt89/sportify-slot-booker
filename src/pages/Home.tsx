@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
-import { ArrowRight, Play, Pause } from 'lucide-react'; // Import play/pause icons
+import { ArrowRight } from 'lucide-react';
 import { venues, sports, sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
 
@@ -11,8 +11,6 @@ const Home: React.FC = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -23,32 +21,6 @@ const Home: React.FC = () => {
     
     return () => clearInterval(interval);
   }, []);
-
-  // Ensure video loops properly
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleEnded = () => {
-      video.currentTime = 0;
-      video.play().catch(e => console.log("Video play error:", e));
-    };
-
-    video.addEventListener('ended', handleEnded);
-    return () => video.removeEventListener('ended', handleEnded);
-  }, []);
-
-  const toggleVideoPlayback = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isVideoPlaying) {
-      video.pause();
-    } else {
-      video.play().catch(e => console.log("Video play error:", e));
-    }
-    setIsVideoPlaying(!isVideoPlaying);
-  };
 
   const openBookingModal = (sport?: string, venue?: string) => {
     setSelectedSport(sport);
@@ -61,35 +33,20 @@ const Home: React.FC = () => {
       <NavBar />
       
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="video-container absolute w-full h-full">
+        {/* Video Background - No controls, no interactivity */}
+        <div className="absolute w-full h-full">
           <video 
-            ref={videoRef}
             autoPlay 
             loop 
             muted 
             playsInline 
             className="w-full h-full object-cover"
-            onPlay={() => setIsVideoPlaying(true)}
-            onPause={() => setIsVideoPlaying(false)}
+            disablePictureInPicture
+            disableRemotePlayback
           >
             <source src="https://mhkwikrckmlfdfljsbfx.supabase.co/storage/v1/object/public/videos//mixkit-one-on-one-in-a-soccer-game-43483-full-hd%20(1).mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-          
-          {/* Play/Pause Button */}
-          <button 
-            onClick={toggleVideoPlayback}
-            className={`absolute bottom-4 right-4 bg-black/50 rounded-full p-3 transition-opacity duration-300 ${
-              isVideoPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'
-            }`}
-            aria-label={isVideoPlaying ? "Pause video" : "Play video"}
-          >
-            {isVideoPlaying ? (
-              <Pause className="h-6 w-6 text-white" />
-            ) : (
-              <Play className="h-6 w-6 text-white" />
-            )}
-          </button>
         </div>
         
         <div className="container mx-auto px-4 z-10 text-center">
