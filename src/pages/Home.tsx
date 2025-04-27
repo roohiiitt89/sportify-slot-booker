@@ -38,7 +38,7 @@ const Home: React.FC = () => {
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="video-container">
           <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-            <source src="https://player.vimeo.com/external/449895997.sd.mp4?s=b5073fd18266f2655c7aeff36c970d05fbbec5ad&profile_id=165&oauth2_token_id=57447761" type="video/mp4" />
+            <source src="https://mhkwikrckmlfdfljsbfx.supabase.co/storage/v1/object/public/videos//mixkit-one-on-one-in-a-soccer-game-43483-full-hd%20(1).mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
