@@ -33,17 +33,8 @@ const Home: React.FC = () => {
       <NavBar />
       
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Video Background - No controls, no interactivity */}
-        <div className="absolute w-full h-full">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="w-full h-full object-cover"
-            disablePictureInPicture
-            disableRemotePlayback
-          >
+        <div className="video-container">
+          <video autoPlay loop muted playsInline className="w-full h-full object-cover">
             <source src="https://mhkwikrckmlfdfljsbfx.supabase.co/storage/v1/object/public/videos//mixkit-one-on-one-in-a-soccer-game-43483-full-hd%20(1).mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
@@ -313,3 +304,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+
