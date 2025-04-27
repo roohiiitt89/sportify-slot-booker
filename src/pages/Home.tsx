@@ -1,5 +1,6 @@
 
 import React from 'react';
+import NavBar from '@/components/NavBar';
 import FeaturedVenues from '@/components/FeaturedVenues';
 import FeaturedSports from '@/components/FeaturedSports';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,9 @@ import { PlayCircle } from 'lucide-react';
 const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Add NavBar component */}
+      <NavBar />
+      
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="video-container">
