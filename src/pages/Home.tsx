@@ -1,16 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
 import { ArrowRight } from 'lucide-react';
 import { venues, sports, sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 const Home: React.FC = () => {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const { scrollY } = useScroll();
+  const zoom = useTransform(scrollY, [0, 600], [1, 1.15]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -20,6 +25,37 @@ const Home: React.FC = () => {
     }, 5000);
     
     return () => clearInterval(interval);
+  }, []);
+
+  // Video playback handling
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const attemptPlay = () => {
+      video.muted = true;
+      video.play()
+        .then(() => {
+          video.setAttribute('data-playing', 'true');
+        })
+        .catch(error => {
+          setTimeout(attemptPlay, 500);
+        });
+    };
+
+    attemptPlay();
+
+    const handleInteraction = () => {
+      if (video.paused) attemptPlay();
+    };
+
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
   }, []);
 
   const openBookingModal = (sport?: string, venue?: string) => {
@@ -32,31 +68,50 @@ const Home: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       <NavBar />
       
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="video-container">
-          <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-            <source src="https://mhkwikrckmlfdfljsbfx.supabase.co/storage/v1/object/public/videos//mixkit-one-on-one-in-a-soccer-game-43483-full-hd%20(1).mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
+      <section className="relative h-screen flex items-center justify-center overflow-hidden rounded-b-3xl">
+        <motion.video
+          ref={videoRef}
+          className="w-full h-full object-cover absolute top-0 left-0"
+          style={{ scale: zoom }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          disableRemotePlayback
+        >
+          <source src="https://mhkwikrckmlfdfljsbfx.supabase.co/storage/v1/object/public/videos//mixkit-one-on-one-in-a-soccer-game-43483-full-hd%20(1).mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </motion.video>
         
-        <div className="container mx-auto px-4 z-10 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="hero-text text-white mb-6 animate-fade-in-down">
+        <div className="relative z-10 h-full flex flex-col justify-center items-center text-center px-6 backdrop-blur-sm bg-black/30 w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="max-w-3xl mx-auto"
+          >
+            <h1 className="hero-text text-white mb-6">
               Book Now for <span className="text-sports-green">Your Game</span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 animate-fade-in">
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.4 }}
+              className="text-xl md:text-2xl text-white/90 mb-8"
+            >
               Reserve your favorite sports venues with just a few clicks
-            </p>
+            </motion.p>
             <Button 
               onClick={() => openBookingModal()}
               size="lg" 
-              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg animate-fade-in-up"
+              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg"
             >
               Book a Slot
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
       
