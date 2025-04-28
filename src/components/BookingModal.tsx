@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent,
@@ -15,17 +15,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { generateTimeSlots, venues, sports } from '@/data/mockData';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialSport?: string;
   initialVenue?: string;
+}
+
+interface TimeSlot {
+  id: string;
+  start_time: string;
+  end_time: string;
+  available: boolean;
+  price: number;
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ 
@@ -38,13 +48,136 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedVenue, setSelectedVenue] = useState(initialVenue || "");
   const [selectedCourt, setSelectedCourt] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [timeSlots, setTimeSlots] = useState(generateTimeSlots());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+  
+  // Fetch sports from Supabase
+  const { data: sports, isLoading: sportsLoading } = useQuery({
+    queryKey: ['sports-for-booking'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sports')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+  
+  // Fetch venues from Supabase
+  const { data: venues, isLoading: venuesLoading } = useQuery({
+    queryKey: ['venues-for-booking'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('venues')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+  
+  // Fetch courts based on selected venue and sport
+  const { data: courts, isLoading: courtsLoading } = useQuery({
+    queryKey: ['courts-for-booking', selectedVenue, selectedSport],
+    queryFn: async () => {
+      const { data: venueData } = await supabase
+        .from('venues')
+        .select('id')
+        .eq('name', selectedVenue)
+        .single();
+
+      const { data: sportData } = await supabase
+        .from('sports')
+        .select('id')
+        .eq('name', selectedSport)
+        .single();
+      
+      if (!venueData || !sportData) return [];
+      
+      const { data, error } = await supabase
+        .from('courts')
+        .select('*')
+        .eq('venue_id', venueData.id)
+        .eq('sport_id', sportData.id)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedVenue && !!selectedSport
+  });
+  
+  // Fetch template slots for the selected court
+  const { data: templateSlots = [], isLoading: slotsLoading } = useQuery({
+    queryKey: ['template-slots', selectedCourt],
+    queryFn: async () => {
+      if (!selectedCourt) return [];
+      
+      const dayOfWeek = date ? date.getDay() : new Date().getDay();
+      
+      const { data, error } = await supabase
+        .from('template_slots')
+        .select('*')
+        .eq('court_id', selectedCourt)
+        .eq('day_of_week', dayOfWeek)
+        .eq('is_active', true)
+        .order('start_time', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data.map(slot => ({
+        id: slot.id,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        available: true, // We'll check availability against bookings below
+        price: slot.price
+      }));
+    },
+    enabled: !!selectedCourt && !!date
+  });
+  
+  // Fetch existing bookings for the selected date and court
+  const { data: bookings = [] } = useQuery({
+    queryKey: ['bookings', selectedCourt, date],
+    queryFn: async () => {
+      if (!selectedCourt || !date) return [];
+      
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('court_id', selectedCourt)
+        .eq('booking_date', formattedDate);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedCourt && !!date
+  });
+  
+  // Process time slots and check availability
+  const timeSlots: TimeSlot[] = React.useMemo(() => {
+    return templateSlots.map(slot => {
+      // Check if this slot is already booked
+      const isBooked = bookings.some(booking => 
+        booking.start_time === slot.start_time && 
+        booking.end_time === slot.end_time
+      );
+      
+      return {
+        ...slot,
+        available: !isBooked
+      };
+    });
+  }, [templateSlots, bookings]);
 
   const handleSlotSelection = (slotTime: string) => {
     if (selectedSlots.includes(slotTime)) {
@@ -54,11 +187,16 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const isSlotAvailable = (slot: { id: string; time: string; available: boolean }) => {
+  const isSlotAvailable = (slot: TimeSlot) => {
     return slot.available;
   };
+  
+  useEffect(() => {
+    // Reset selected slots when court or date changes
+    setSelectedSlots([]);
+  }, [selectedCourt, date]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedSport || !selectedVenue || !selectedCourt || !date || selectedSlots.length === 0) {
       toast({
         variant: "destructive",
@@ -81,15 +219,49 @@ const BookingModal: React.FC<BookingModalProps> = ({
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Create bookings for each selected slot
+      const bookingPromises = selectedSlots.map(async (slotTime) => {
+        const slot = timeSlots.find(s => s.start_time === slotTime);
+        if (!slot) return null;
+        
+        const bookingData = {
+          court_id: selectedCourt,
+          user_id: user?.id || '00000000-0000-0000-0000-000000000000', // Anonymous booking if not logged in
+          booking_date: format(date as Date, 'yyyy-MM-dd'),
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          total_price: slot.price,
+          status: 'pending'
+        };
+        
+        const { data, error } = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select();
+        
+        if (error) throw error;
+        return data;
+      });
+      
+      await Promise.all(bookingPromises);
+      
       toast({
         title: "Booking Successful",
         description: `You have booked ${selectedSlots.length} slot(s) for ${selectedSport} at ${selectedVenue} on ${format(date as Date, "PPP")}`,
       });
-      setIsSubmitting(false);
+      
       onClose();
-    }, 1500);
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast({
+        variant: "destructive",
+        title: "Booking Failed",
+        description: "There was an error processing your booking. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -109,12 +281,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
               <Select 
                 value={selectedSport} 
                 onValueChange={setSelectedSport}
+                disabled={sportsLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a sport" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sports.map(sport => (
+                  {sports?.map(sport => (
                     <SelectItem key={sport.id} value={sport.name}>
                       {sport.name}
                     </SelectItem>
@@ -128,12 +301,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
               <Select 
                 value={selectedVenue} 
                 onValueChange={setSelectedVenue}
+                disabled={venuesLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a venue" />
                 </SelectTrigger>
                 <SelectContent>
-                  {venues.map(venue => (
+                  {venues?.map(venue => (
                     <SelectItem key={venue.id} value={venue.name}>
                       {venue.name}
                     </SelectItem>
@@ -149,16 +323,17 @@ const BookingModal: React.FC<BookingModalProps> = ({
               <Select 
                 value={selectedCourt} 
                 onValueChange={setSelectedCourt}
-                disabled={!selectedVenue || !selectedSport}
+                disabled={!selectedVenue || !selectedSport || courtsLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a court" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="court1">Court 1</SelectItem>
-                  <SelectItem value="court2">Court 2</SelectItem>
-                  <SelectItem value="court3">Court 3</SelectItem>
-                  <SelectItem value="court4">Court 4</SelectItem>
+                  {courts?.map(court => (
+                    <SelectItem key={court.id} value={court.id}>
+                      {court.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -196,31 +371,56 @@ const BookingModal: React.FC<BookingModalProps> = ({
             <Label>Available Time Slots</Label>
             <p className="text-sm text-gray-500">Select one or more time slots</p>
             
-            <div className="slot-grid">
-              {timeSlots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className={`slot-item ${
-                    !isSlotAvailable(slot)
-                      ? 'slot-booked'
-                      : selectedSlots.includes(slot.time)
-                      ? 'slot-selected'
-                      : 'slot-available'
-                  }`}
-                  onClick={() => {
-                    if (isSlotAvailable(slot)) {
-                      handleSlotSelection(slot.time);
-                    }
-                  }}
-                >
-                  {slot.time}
-                </div>
-              ))}
-            </div>
+            {slotsLoading ? (
+              <div className="flex items-center justify-center p-6">
+                <Loader2 className="h-6 w-6 animate-spin text-sports-green" />
+              </div>
+            ) : timeSlots.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {timeSlots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    className={`p-3 rounded-md text-center cursor-pointer transition-colors ${
+                      !isSlotAvailable(slot)
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : selectedSlots.includes(slot.start_time)
+                        ? 'bg-sports-green text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    }`}
+                    onClick={() => {
+                      if (isSlotAvailable(slot)) {
+                        handleSlotSelection(slot.start_time);
+                      }
+                    }}
+                  >
+                    <div>{slot.start_time} - {slot.end_time}</div>
+                    <div className="text-xs mt-1">
+                      {isSlotAvailable(slot) 
+                        ? `$${slot.price}` 
+                        : 'Booked'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 rounded-md text-center">
+                {selectedCourt 
+                  ? "No available slots for this selection." 
+                  : "Select a court to see available slots."}
+              </div>
+            )}
             
             {selectedSlots.length > 0 && (
               <div className="mt-2 p-2 bg-gray-50 rounded-md">
-                <p className="font-medium text-sm">Selected: {selectedSlots.join(', ')}</p>
+                <p className="font-medium text-sm">
+                  Selected: {selectedSlots.length} slots
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total: ${selectedSlots.reduce((sum, slotTime) => {
+                    const slot = timeSlots.find(s => s.start_time === slotTime);
+                    return sum + (slot?.price || 0);
+                  }, 0)}
+                </p>
               </div>
             )}
           </div>

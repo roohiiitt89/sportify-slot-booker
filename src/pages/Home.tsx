@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
 import { ArrowRight } from 'lucide-react';
-import { venues, sports, sportsQuotes } from '@/data/mockData';
+import { sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -82,9 +83,9 @@ const Home: React.FC = () => {
               Reserve your favorite sports venues with just a few clicks
             </p>
             <Button 
-              onClick={() => openBookingModal()}
+              onClick={() => navigate('/sports')}
               size="lg" 
-              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg animate-fade-in-up"
+              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg animate-fade-in-up shadow-lg hover:shadow-xl transition-all duration-300"
             >
               Book a Slot
               <ArrowRight className="ml-2 h-5 w-5" />

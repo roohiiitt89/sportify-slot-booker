@@ -1,17 +1,19 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Clock, Users, Phone, MapPin } from 'lucide-react';
+import { Loader2, Clock, Users, Phone, MapPin, ArrowLeft } from 'lucide-react';
 import BookingModal from '@/components/BookingModal';
+import { toast } from "sonner";
 
 const VenueDetail: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
 
   const { data: venue, isLoading } = useQuery({
@@ -23,7 +25,11 @@ const VenueDetail: React.FC = () => {
         .eq('id', id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        toast.error("Venue not found");
+        navigate('/venues');
+        throw error;
+      }
       return data;
     }
   });
@@ -42,6 +48,16 @@ const VenueDetail: React.FC = () => {
       <div className="container mx-auto px-4 pt-24 pb-16">
         {venue && (
           <>
+            <div className="flex justify-between items-center mb-6">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+            </div>
+
             <Carousel className="mb-8">
               <CarouselContent>
                 <CarouselItem>
@@ -69,15 +85,15 @@ const VenueDetail: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Clock className="h-5 w-5 text-sports-green" />
-                        <span>{(venue as any).opening_hours || 'Opening hours not specified'}</span>
+                        <span>{venue.opening_hours || 'Opening hours not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Users className="h-5 w-5 text-sports-green" />
-                        <span>Capacity: {(venue as any).capacity || 'Not specified'}</span>
+                        <span>Capacity: {venue.capacity ? venue.capacity : 'Not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Phone className="h-5 w-5 text-sports-green" />
-                        <span>{(venue as any).contact_number || 'Contact number not specified'}</span>
+                        <span>{venue.contact_number || 'Contact number not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-sports-green" />
@@ -86,6 +102,28 @@ const VenueDetail: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {venue.courts && venue.courts.length > 0 && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h2 className="text-2xl font-bold mb-4">Available Sports</h2>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {venue.sports && Array.from(new Set(venue.sports.map((sport: any) => sport.id))).map((sportId: string) => {
+                          const sport = venue.sports.find((s: any) => s.id === sportId);
+                          return sport && (
+                            <div 
+                              key={sport.id}
+                              className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-sports-green hover:shadow-md transition-all cursor-pointer"
+                              onClick={() => navigate(`/sports/${sport.id}`)}
+                            >
+                              <p className="font-medium text-center">{sport.name}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <div>
