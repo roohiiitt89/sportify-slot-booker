@@ -84,7 +84,25 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
         throw error;
       }
       
-      return (data || []) as BookingWithRelations[];
+      // Process the data to ensure it conforms to our interface
+      return (data || []).map(booking => {
+        // Create a properly typed booking object
+        const typedBooking: BookingWithRelations = {
+          id: booking.id,
+          booking_date: booking.booking_date,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          status: booking.status || "",
+          guest_name: booking.guest_name,
+          guest_phone: booking.guest_phone,
+          courts: booking.courts,
+          // Handle the profiles property which might be an error object
+          profiles: booking.profiles && typeof booking.profiles === 'object' && !('error' in booking.profiles)
+            ? booking.profiles
+            : null
+        };
+        return typedBooking;
+      });
     }
   });
 
