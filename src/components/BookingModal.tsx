@@ -258,7 +258,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         
         const bookingData = {
           court_id: selectedCourt,
-          user_id: user?.id || null,
+          user_id: user?.id,
           guest_name: !isLoggedIn ? values.name : null,
           guest_phone: !isLoggedIn ? values.phone : null,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
@@ -268,7 +268,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
           status: 'pending'
         };
         
-        console.log("Saving booking data:", bookingData);
+        console.log("Creating booking with data:", bookingData);
         
         const { data, error } = await supabase
           .from('bookings')
@@ -281,17 +281,22 @@ const BookingModal: React.FC<BookingModalProps> = ({
           throw error;
         }
         
-        console.log("Booking successful:", data);
+        console.log("Booking created successfully:", data);
         return data;
       });
       
-      await Promise.all(bookingPromises);
+      const results = await Promise.all(bookingPromises);
+      const successfulBookings = results.filter(Boolean);
       
-      toast.success(`You have booked ${selectedSlots.length} slot(s) successfully!`);
-      onClose();
-    } catch (error) {
+      if (successfulBookings.length > 0) {
+        toast.success(`Successfully booked ${successfulBookings.length} slot(s)!`);
+        onClose();
+      } else {
+        toast.error("Failed to create any bookings. Please try again.");
+      }
+    } catch (error: any) {
       console.error('Booking error:', error);
-      toast.error("There was an error processing your booking. Please try again.");
+      toast.error(error.message || "There was an error processing your booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
