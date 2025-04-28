@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react'; // Assuming you use lucide-react for icons
 import { Card, CardContent } from '@/components/ui/card'; // Assuming you use shadcn or similar
-import { supabase } from '@/lib/supabaseClient'; // Your Supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 export default function VenueDetails() {
   const { id } = useParams();
