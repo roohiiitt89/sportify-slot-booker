@@ -6,7 +6,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Clock, Users, Phone, MapPin, ArrowLeft } from 'lucide-react';
 import BookingModal from '@/components/BookingModal';
 import { toast } from "sonner";
@@ -16,34 +16,56 @@ const VenueDetail: React.FC = () => {
   const navigate = useNavigate();
   const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
 
+  // Updated query to correctly fetch venue and related sports
   const { data: venue, isLoading, error } = useQuery({
     queryKey: ['venue', id],
     queryFn: async () => {
       if (!id) throw new Error("No venue ID provided");
-
-      const { data, error } = await supabase
+      
+      // First fetch the venue details
+      const { data: venueData, error: venueError } = await supabase
         .from('venues')
-        .select(`
-          *,
-          courts(*),
-          sports(*)
-        `)
+        .select('*')
         .eq('id', id)
         .maybeSingle();
       
-      if (error) {
-        console.error("Supabase error:", error);
+      if (venueError) {
+        console.error("Supabase venue error:", venueError);
         toast.error("Failed to load venue details");
-        throw error;
+        throw venueError;
       }
 
-      if (!data) {
+      if (!venueData) {
         console.error("No venue found with ID:", id);
         toast.error("Venue not found");
         throw new Error("Venue not found");
       }
-
-      return data;
+      
+      // Then fetch courts related to this venue
+      const { data: courtsData, error: courtsError } = await supabase
+        .from('courts')
+        .select(`
+          *,
+          sports(*)
+        `)
+        .eq('venue_id', id);
+      
+      if (courtsError) {
+        console.error("Supabase courts error:", courtsError);
+        // Don't throw here, we'll just return the venue without courts
+      }
+      
+      // Extract unique sports from courts
+      const sports = courtsData 
+        ? Array.from(new Set(courtsData.flatMap(court => court.sports ? [court.sports] : [])))
+        : [];
+      
+      // Return venue with courts and sports
+      return {
+        ...venueData,
+        courts: courtsData || [],
+        sports: sports
+      };
     },
     enabled: !!id
   });
@@ -141,23 +163,20 @@ const VenueDetail: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {venue.courts && venue.courts.length > 0 && (
+                {venue.sports && venue.sports.length > 0 && (
                   <Card>
                     <CardContent className="p-6">
                       <h2 className="text-2xl font-bold mb-4">Available Sports</h2>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {venue.sports && Array.from(new Set(venue.sports.map((sport: any) => sport.id))).map((sportId: string) => {
-                          const sport = venue.sports.find((s: any) => s.id === sportId);
-                          return sport && (
-                            <div 
-                              key={sport.id}
-                              className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-sports-green hover:shadow-md transition-all cursor-pointer"
-                              onClick={() => navigate(`/sports/${sport.id}`)}
-                            >
-                              <p className="font-medium text-center">{sport.name}</p>
-                            </div>
-                          );
-                        })}
+                        {venue.sports.map((sport: any) => (
+                          <div 
+                            key={sport.id}
+                            className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-sports-green hover:shadow-md transition-all cursor-pointer"
+                            onClick={() => navigate(`/sports/${sport.id}`)}
+                          >
+                            <p className="font-medium text-center">{sport.name}</p>
+                          </div>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
