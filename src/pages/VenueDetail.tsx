@@ -19,20 +19,23 @@ export default function VenueDetails() {
     );
   }
 
-  // Fetch Venue Data
-  const { data: venue, isLoading, isError } = useQuery(['venue', id], async () => {
-    const { data, error } = await supabase
-      .from('venues')
-      .select(`
-        *,
-        courts(*),
-        sports(*)
-      `)
-      .eq('id', id)
-      .single();
+  // Fetch Venue Data with useQuery in the object format
+  const { data: venue, isLoading, isError } = useQuery({
+    queryKey: ['venue', id], // Use queryKey to uniquely identify the query
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('venues')
+        .select(`
+          *,
+          courts(*),
+          sports(*)
+        `)
+        .eq('id', id)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    }
   });
 
   if (isLoading) {
@@ -105,4 +108,5 @@ export default function VenueDetails() {
     </div>
   );
 }
+
 
