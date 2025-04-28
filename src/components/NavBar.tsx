@@ -12,41 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, Menu, X } from "lucide-react";
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
 
 const NavBar: React.FC = () => {
   const { user, isLoggedIn, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // Check if the user is a venue admin or has admin role
-  const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery({
-    queryKey: ['user-admin-status', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return false;
-      
-      // Check if user has admin or super_admin role
-      if (user.role === 'admin' || user.role === 'super_admin') {
-        return true;
-      }
-
-      // Check if user is a venue admin
-      const { data, error } = await supabase
-        .from('venue_admins')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error checking venue admin status:', error);
-        return false;
-      }
-      
-      return !!data; // Return true if data exists (user is a venue admin)
-    },
-    enabled: !!isLoggedIn && !!user?.id
-  });
+  // Check if the user has admin access directly from user.role
+  const showAdminPanel = isLoggedIn && (user?.role === 'admin' || user?.role === 'super_admin');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,9 +33,6 @@ const NavBar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Show Admin Panel link if user is an admin or venue admin
-  const showAdminPanel = isLoggedIn && isAdmin;
 
   return (
     <nav 
@@ -114,6 +84,11 @@ const NavBar: React.FC = () => {
                 <DropdownMenuLabel>
                   {user?.name}
                   <p className="text-xs text-gray-500">{user?.email}</p>
+                  {user?.role !== 'user' && (
+                    <p className="text-xs font-medium text-sports-green mt-1">
+                      {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </p>
+                  )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

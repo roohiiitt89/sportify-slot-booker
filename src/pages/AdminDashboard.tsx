@@ -22,9 +22,9 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState(tabFromUrl);
   const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(venueFromUrl || undefined);
 
-  // For now, we'll consider all authenticated users as having admin access
-  // to ensure the basic functionality works
-  const canAccessAdmin = true;
+  // Check if user can access admin panel (admin or super_admin)
+  const canAccessAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -32,12 +32,12 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     
-    // Temporarily disable role checking to ensure admin panel is accessible
-    // if (!canAccessAdmin) {
-    //   toast.error("You don't have permission to access the admin panel");
-    //   navigate('/');
-    // }
-  }, [isLoggedIn, navigate]);
+    // Check if user has admin access
+    if (!canAccessAdmin) {
+      toast.error("You don't have permission to access the admin panel");
+      navigate('/');
+    }
+  }, [isLoggedIn, navigate, canAccessAdmin]);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -56,9 +56,6 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
-
-  // Temporarily consider all users as super_admin to ensure functionality works
-  const isSuperAdmin = true;
 
   return (
     <div className="min-h-screen bg-gray-50">

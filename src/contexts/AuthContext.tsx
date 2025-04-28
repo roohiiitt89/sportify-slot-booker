@@ -36,27 +36,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     let userRole = 'user';
     
-    // Check if user is a venue admin
     try {
-      // Check if user has any venue admin rights
-      const { data: venueAdminData } = await supabase
-        .from('venue_admins')
-        .select('id')
-        .eq('user_id', supabaseUser.id)
-        .maybeSingle();
+      console.log("Checking roles for user:", supabaseUser.id);
       
-      // Check if user has admin or super_admin role
-      const { data: userRoleData } = await supabase
+      // First check if user has admin or super_admin role in user_roles
+      const { data: userRoleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', supabaseUser.id)
         .maybeSingle();
       
-      if (userRoleData?.role === 'admin' || userRoleData?.role === 'super_admin') {
-        userRole = userRoleData.role;
+      if (roleError) {
+        console.error('Error checking user role:', roleError);
+      }
+      
+      // Then check if user is a venue admin
+      const { data: venueAdminData, error: venueError } = await supabase
+        .from('venue_admins')
+        .select('id')
+        .eq('user_id', supabaseUser.id)
+        .maybeSingle();
+      
+      if (venueError) {
+        console.error('Error checking venue admin status:', venueError);
+      }
+
+      // Set the appropriate role based on the results
+      if (userRoleData?.role === 'super_admin') {
+        userRole = 'super_admin';
+        console.log("User has super_admin role");
+      } else if (userRoleData?.role === 'admin') {
+        userRole = 'admin';
+        console.log("User has admin role");
       } else if (venueAdminData) {
         userRole = 'admin'; // Treat venue admins as admins for UI purposes
+        console.log("User is a venue admin, setting role to admin");
       }
+      
+      console.log("Final determined role:", userRole);
     } catch (error) {
       console.error('Error checking user role:', error);
     }
