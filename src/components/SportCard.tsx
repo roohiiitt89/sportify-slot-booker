@@ -27,6 +27,12 @@ const SportCard: React.FC<SportCardProps> = ({ sport }) => {
     console.log("SportCard: Attempting to navigate to sport with ID:", sport.id);
     
     try {
+      if (!sport.id) {
+        console.error("SportCard: Missing sport ID for navigation");
+        toast.error("Cannot view sport details: Missing ID");
+        return;
+      }
+
       // Add logging for debugging
       console.log(`SportCard: Navigation path: /sports/${sport.id}`);
       navigate(`/sports/${sport.id}`);
@@ -66,6 +72,7 @@ const SportCard: React.FC<SportCardProps> = ({ sport }) => {
         <Button 
           onClick={handleNavigate}
           className="w-full bg-sports-green hover:bg-sports-green/90 group-hover:bg-sports-blue transition-colors"
+          aria-label={`View details for ${sport.name}`}
         >
           View Details
           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

@@ -27,6 +27,12 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
     console.log("VenueCard: Attempting to navigate to venue with ID:", venue.id);
     
     try {
+      if (!venue.id) {
+        console.error("VenueCard: Missing venue ID for navigation");
+        toast.error("Cannot view venue details: Missing ID");
+        return;
+      }
+
       // Add logging for debugging
       console.log(`VenueCard: Navigation path: /venues/${venue.id}`);
       navigate(`/venues/${venue.id}`);
@@ -73,6 +79,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
         <button
           onClick={handleClick}
           className="mt-4 text-sports-green font-semibold hover:underline"
+          aria-label={`View details for ${venue.name}`}
         >
           View Details
         </button>

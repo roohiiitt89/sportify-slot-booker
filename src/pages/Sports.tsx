@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import NavBar from '@/components/NavBar';
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +7,16 @@ import SportCard from '@/components/SportCard';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Sports: React.FC = () => {
+  useEffect(() => {
+    console.log("Sports page: Component mounted");
+    return () => {
+      console.log("Sports page: Component unmounted");
+    };
+  }, []);
+
   const { data: sports, isLoading, error } = useQuery({
     queryKey: ['sports'],
     queryFn: async () => {
@@ -22,6 +30,7 @@ const Sports: React.FC = () => {
         
         if (error) {
           console.error("Sports page: Error fetching sports:", error);
+          toast.error("Failed to load sports data");
           throw error;
         }
         
@@ -39,20 +48,25 @@ const Sports: React.FC = () => {
     }
   });
 
-  React.useEffect(() => {
-    console.log("Sports page: Component mounted");
-    return () => {
-      console.log("Sports page: Component unmounted");
-    };
-  }, []);
-
   if (isLoading) {
     console.log("Sports page: Displaying loading state");
     return (
       <div className="min-h-screen">
         <NavBar />
-        <div className="container mx-auto px-4 pt-24 pb-16 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-sports-green" />
+        <div className="container mx-auto px-4 pt-24 pb-16">
+          <h1 className="text-4xl font-bold mb-8">All Sports</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex flex-col space-y-3">
+                <Skeleton className="h-48 rounded-t-lg" />
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-10 w-full mt-4" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
