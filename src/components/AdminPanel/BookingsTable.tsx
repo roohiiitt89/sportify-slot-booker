@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/lib/supabaseClient";
@@ -33,7 +32,7 @@ interface BookingWithRelations {
       name: string;
     };
   };
-  profiles?: {
+  profiles: {
     full_name: string | null;
     email: string | null;
   } | null;
@@ -96,7 +95,7 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
           guest_name: booking.guest_name,
           guest_phone: booking.guest_phone,
           courts: booking.courts,
-          // Fix the null check and ensure proper typing
+          // Ensure proper null checking and typing for profiles
           profiles: booking.profiles && 
                    typeof booking.profiles === 'object' && 
                    !('error' in booking.profiles) ? booking.profiles : null
@@ -203,7 +202,6 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
                     {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
                   </TableCell>
                   <TableCell>
-                    {/* Fixed the null checking for profiles */}
                     {booking.profiles?.full_name || booking.guest_name || "Anonymous"}
                     <br />
                     <span className="text-xs text-gray-500">
