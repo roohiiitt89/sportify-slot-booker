@@ -12,12 +12,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, Menu, X } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
 
 const NavBar: React.FC = () => {
   const { user, isLoggedIn, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  
+  // Check if the user is a venue admin or has admin role
+  const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery({
+    queryKey: ['user-admin-status', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      
+      // Check if user has admin or super_admin role
+      if (user.role === 'admin' || user.role === 'super_admin') {
+        return true;
+      }
+
+      // Check if user is a venue admin
+      const { data, error } = await supabase
+        .from('venue_admins')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking venue admin status:', error);
+        return false;
+      }
+      
+      return !!data; // Return true if data exists (user is a venue admin)
+    },
+    enabled: !!isLoggedIn && !!user?.id
+  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,6 +60,9 @@ const NavBar: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Show Admin Panel link if user is an admin or venue admin
+  const showAdminPanel = isLoggedIn && isAdmin;
 
   return (
     <nav 
@@ -90,7 +122,7 @@ const NavBar: React.FC = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/bookings">My Bookings</Link>
                 </DropdownMenuItem>
-                {isAdmin && (
+                {showAdminPanel && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">Admin Panel</Link>
                   </DropdownMenuItem>
@@ -179,7 +211,7 @@ const NavBar: React.FC = () => {
                 >
                   My Bookings
                 </Link>
-                {isAdmin && (
+                {showAdminPanel && (
                   <Link 
                     to="/admin" 
                     className="nav-link text-gray-700 pl-2 py-2"

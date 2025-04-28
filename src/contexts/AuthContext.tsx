@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient"; 
+import { supabase } from "@/integrations/supabase/client"; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,15 +31,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
   
   // Transform Supabase user to our User type with a simpler approach
-  const mapSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
+  const mapSupabaseUser = async (supabaseUser: SupabaseUser | null): Promise<User | null> => {
     if (!supabaseUser) return null;
     
-    // For now, default everyone to 'user' role to prevent login issues
+    let userRole = 'user';
+    
+    // Check if user is a venue admin
+    try {
+      // Check if user has any venue admin rights
+      const { data: venueAdminData } = await supabase
+        .from('venue_admins')
+        .select('id')
+        .eq('user_id', supabaseUser.id)
+        .maybeSingle();
+      
+      // Check if user has admin or super_admin role
+      const { data: userRoleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', supabaseUser.id)
+        .maybeSingle();
+      
+      if (userRoleData?.role === 'admin' || userRoleData?.role === 'super_admin') {
+        userRole = userRoleData.role;
+      } else if (venueAdminData) {
+        userRole = 'admin'; // Treat venue admins as admins for UI purposes
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+    }
+    
     return {
       id: supabaseUser.id,
       name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
       email: supabaseUser.email || '',
-      role: 'user' // Default role that won't block access
+      role: userRole as 'user' | 'admin' | 'super_admin'
     };
   };
   
@@ -53,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (currentSession?.user) {
           // Transform Supabase user to our User type
-          const userInfo = mapSupabaseUser(currentSession.user);
+          const userInfo = await mapSupabaseUser(currentSession.user);
           setUser(userInfo);
         } else {
           setUser(null);
@@ -67,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (currentSession?.user) {
         // Transform Supabase user to our User type
-        const userInfo = mapSupabaseUser(currentSession.user);
+        const userInfo = await mapSupabaseUser(currentSession.user);
         setUser(userInfo);
       }
       

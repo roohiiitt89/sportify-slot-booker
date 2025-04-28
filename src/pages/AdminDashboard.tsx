@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import NavBar from '@/components/NavBar';
 import AdminHeader from '@/components/AdminPanel/AdminHeader';
 import BookingsTable from '@/components/AdminPanel/BookingsTable';
