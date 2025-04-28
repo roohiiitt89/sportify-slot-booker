@@ -10,6 +10,9 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Venues from "./pages/Venues";
+import VenueDetail from "./pages/VenueDetail";
+import Sports from "./pages/Sports";
 
 const queryClient = new QueryClient();
 

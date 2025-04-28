@@ -69,15 +69,15 @@ const VenueDetail: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Clock className="h-5 w-5 text-sports-green" />
-                        <span>{venue.opening_hours || 'Opening hours not specified'}</span>
+                        <span>{(venue as any).opening_hours || 'Opening hours not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Users className="h-5 w-5 text-sports-green" />
-                        <span>Capacity: {venue.capacity || 'Not specified'}</span>
+                        <span>Capacity: {(venue as any).capacity || 'Not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Phone className="h-5 w-5 text-sports-green" />
-                        <span>{venue.contact_number || 'Contact number not specified'}</span>
+                        <span>{(venue as any).contact_number || 'Contact number not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-sports-green" />

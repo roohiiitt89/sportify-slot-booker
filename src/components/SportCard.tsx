@@ -1,51 +1,47 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ArrowRight } from 'lucide-react';
+
+interface Sport {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+}
 
 interface SportCardProps {
-  sport: {
-    id: string;
-    name: string;
-    description: string | null;
-    image_url: string | null;
-  };
+  sport: Sport;
 }
 
 const SportCard: React.FC<SportCardProps> = ({ sport }) => {
   const navigate = useNavigate();
 
   return (
-    <Card className="group overflow-hidden rounded-xl transition-all duration-300 hover:shadow-lg cursor-pointer bg-white">
-      <div className="aspect-[4/3] overflow-hidden relative">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] group">
+      <div className="relative h-48 overflow-hidden">
         <img 
           src={sport.image_url || '/placeholder.svg'} 
-          alt={sport.name} 
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          alt={sport.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
-          <h3 className="text-xl font-bold text-white mb-2">{sport.name}</h3>
-          {sport.description && (
-            <p className="text-sm text-white/90 line-clamp-2">{sport.description}</p>
-          )}
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <h3 className="absolute bottom-4 left-4 text-xl font-bold text-white">{sport.name}</h3>
       </div>
-      
-      <div className="p-4 flex justify-between items-center">
+      <CardContent className="p-5">
+        <p className="text-gray-600 mb-4 line-clamp-2 min-h-[48px]">
+          {sport.description || `Experience the excitement of ${sport.name} at our premier venues.`}
+        </p>
         <Button 
-          variant="outline"
-          size="sm"
-          className="hover:bg-sports-green hover:text-white transition-colors"
-          onClick={() => navigate(`/sports/${sport.id}`)}
+          onClick={() => navigate(`/sports/${sport.id}`)} 
+          className="w-full bg-sports-green hover:bg-sports-green/90 group-hover:bg-sports-blue transition-colors"
         >
-          View Venues
+          View Details
+          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Button>
-        <div className="text-sm text-gray-500">
-          3 available venues
-        </div>
-      </div>
+      </CardContent>
     </Card>
   );
 };
