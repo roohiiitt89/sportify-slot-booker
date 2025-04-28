@@ -96,10 +96,9 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
           guest_name: booking.guest_name,
           guest_phone: booking.guest_phone,
           courts: booking.courts,
-          // Fix the null check: first check if profiles exists, then check if it's an object, then check if it's not an error
+          // Fix the null check and ensure proper typing
           profiles: booking.profiles && 
                    typeof booking.profiles === 'object' && 
-                   booking.profiles !== null && 
                    !('error' in booking.profiles) ? booking.profiles : null
         };
         return typedBooking;
@@ -204,9 +203,12 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
                     {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
                   </TableCell>
                   <TableCell>
+                    {/* Fixed the null checking for profiles */}
                     {booking.profiles?.full_name || booking.guest_name || "Anonymous"}
                     <br />
-                    <span className="text-xs text-gray-500">{booking.profiles?.email || booking.guest_phone || "No contact"}</span>
+                    <span className="text-xs text-gray-500">
+                      {booking.profiles?.email || booking.guest_phone || "No contact"}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {booking.courts.venues.name}
