@@ -96,10 +96,11 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
           guest_name: booking.guest_name,
           guest_phone: booking.guest_phone,
           courts: booking.courts,
-          // Handle the profiles property which might be an error object
-          profiles: booking.profiles && typeof booking.profiles === 'object' && booking.profiles !== null && !('error' in booking.profiles)
-            ? booking.profiles
-            : null
+          // Fix the null check: first check if profiles exists, then check if it's an object, then check if it's not an error
+          profiles: booking.profiles && 
+                   typeof booking.profiles === 'object' && 
+                   booking.profiles !== null && 
+                   !('error' in booking.profiles) ? booking.profiles : null
         };
         return typedBooking;
       });
