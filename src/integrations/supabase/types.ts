@@ -207,6 +207,8 @@ export type Database = {
       }
       venues: {
         Row: {
+          capacity: number | null
+          contact_number: string | null
           created_at: string
           description: string | null
           id: string
@@ -214,9 +216,12 @@ export type Database = {
           is_active: boolean | null
           location: string
           name: string
+          opening_hours: string | null
           updated_at: string
         }
         Insert: {
+          capacity?: number | null
+          contact_number?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -224,9 +229,12 @@ export type Database = {
           is_active?: boolean | null
           location: string
           name: string
+          opening_hours?: string | null
           updated_at?: string
         }
         Update: {
+          capacity?: number | null
+          contact_number?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -234,6 +242,7 @@ export type Database = {
           is_active?: boolean | null
           location?: string
           name?: string
+          opening_hours?: string | null
           updated_at?: string
         }
         Relationships: []

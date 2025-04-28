@@ -21,15 +21,26 @@ const VenueDetail: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('venues')
-        .select('*, courts(*), sports(*)')
+        .select(`
+          *,
+          courts(*),
+          sports(*)
+        `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        toast.error("Venue not found");
+        toast.error("Failed to load venue details");
         navigate('/venues');
         throw error;
       }
+
+      if (!data) {
+        toast.error("Venue not found");
+        navigate('/venues');
+        throw new Error("Venue not found");
+      }
+
       return data;
     }
   });
@@ -85,15 +96,15 @@ const VenueDetail: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Clock className="h-5 w-5 text-sports-green" />
-                        <span>{"Opening hours not specified"}</span>
+                        <span>{venue.opening_hours || 'Opening hours not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Users className="h-5 w-5 text-sports-green" />
-                        <span>Capacity: {"Not specified"}</span>
+                        <span>Capacity: {venue.capacity || 'Not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Phone className="h-5 w-5 text-sports-green" />
-                        <span>{"Contact number not specified"}</span>
+                        <span>{venue.contact_number || 'Contact number not specified'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <MapPin className="h-5 w-5 text-sports-green" />

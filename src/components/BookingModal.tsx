@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -55,6 +54,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
   
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    const hoursNum = parseInt(hours);
+    const ampm = hoursNum >= 12 ? 'PM' : 'AM';
+    const hours12 = hoursNum % 12 || 12;
+    return `${hours12}:${minutes} ${ampm}`;
+  };
+
   // Fetch sports from Supabase
   const { data: sports, isLoading: sportsLoading } = useQuery({
     queryKey: ['sports-for-booking'],
@@ -393,10 +400,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
                       }
                     }}
                   >
-                    <div>{slot.start_time} - {slot.end_time}</div>
+                    <div>{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</div>
                     <div className="text-xs mt-1">
                       {isSlotAvailable(slot) 
-                        ? `$${slot.price}` 
+                        ? `₹${slot.price}` 
                         : 'Booked'}
                     </div>
                   </div>
@@ -416,7 +423,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
                   Selected: {selectedSlots.length} slots
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Total: ${selectedSlots.reduce((sum, slotTime) => {
+                  Total: ₹{selectedSlots.reduce((sum, slotTime) => {
                     const slot = timeSlots.find(s => s.start_time === slotTime);
                     return sum + (slot?.price || 0);
                   }, 0)}
