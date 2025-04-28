@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -18,7 +19,7 @@ import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { 
   Form,
@@ -256,9 +257,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
         const slot = timeSlots.find(s => s.start_time === slotTime);
         if (!slot) return null;
         
+        // Correctly handle user_id for authenticated and guest users
         const bookingData = {
           court_id: selectedCourt,
-          user_id: user?.id,
+          user_id: isLoggedIn ? user?.id : null,
           guest_name: !isLoggedIn ? values.name : null,
           guest_phone: !isLoggedIn ? values.phone : null,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
@@ -558,3 +560,4 @@ const BookingModal: React.FC<BookingModalProps> = ({
 };
 
 export default BookingModal;
+
