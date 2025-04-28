@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -18,7 +19,7 @@ import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Form,
@@ -270,6 +271,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
           status: 'pending'
         };
         
+        console.log("Saving booking data:", bookingData);
+        
         const { data, error } = await supabase
           .from('bookings')
           .insert(bookingData)
@@ -280,6 +283,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
           throw error;
         }
         
+        console.log("Booking successful:", data);
         return data;
       });
       
