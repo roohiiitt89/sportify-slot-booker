@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
 import { ArrowRight } from 'lucide-react';
 import { venues, sports, sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import VenueCard from '@/components/VenueCard';
+import SportCard from '@/components/SportCard';
 
 const Home: React.FC = () => {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | undefined>(undefined);
   const [selectedVenue, setSelectedVenue] = useState<string | undefined>(undefined);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -27,6 +32,34 @@ const Home: React.FC = () => {
     setSelectedVenue(venue);
     setIsBookingModalOpen(true);
   };
+
+  const { data: venues } = useQuery({
+    queryKey: ['featured-venues'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('venues')
+        .select('*')
+        .eq('is_active', true)
+        .limit(4);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: sports } = useQuery({
+    queryKey: ['featured-sports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sports')
+        .select('*')
+        .eq('is_active', true)
+        .limit(3);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -72,37 +105,20 @@ const Home: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {venues.map((venue, index) => (
-              <div 
-                key={venue.id} 
-                className="venue-card transform transition-all duration-300 hover:scale-105"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <img 
-                  src={venue.image} 
-                  alt={venue.name} 
-                  className="w-full h-64 object-cover rounded-2xl"
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-b-2xl">
-                  <h3 className="text-xl font-bold mb-2">{venue.name}</h3>
-                  <p className="text-sm text-white/90 mb-3">{venue.location}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sports-green">★</span>
-                      <span className="text-sm">{venue.rating}</span>
-                    </div>
-                    <Button 
-                      onClick={() => openBookingModal(undefined, venue.name)}
-                      variant="secondary"
-                      size="sm"
-                      className="bg-white text-gray-800 hover:bg-sports-green hover:text-white transition-colors"
-                    >
-                      Book Now
-                    </Button>
-                  </div>
-                </div>
-              </div>
+            {venues?.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} />
             ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Button 
+              onClick={() => navigate('/venues')}
+              size="lg"
+              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              Explore All Venues
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
@@ -119,46 +135,20 @@ const Home: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sports.map((sport, index) => (
-              <div 
-                key={sport.id}
-                className="sport-card overflow-hidden rounded-2xl bg-white shadow-lg transform transition-all duration-300 hover:scale-105"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="relative h-48">
-                  <img 
-                    src={sport.image} 
-                    alt={sport.name} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xl font-bold text-gray-800">{sport.name}</h3>
-                    <div className="text-sm bg-sports-green/10 text-sports-green py-1 px-3 rounded-full">
-                      {sport.popularity}% Popular
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{sport.description}</p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {sport.venues.map(venue => (
-                      <span 
-                        key={venue} 
-                        className="bg-gray-100 text-gray-800 px-2 py-1 text-xs rounded-full"
-                      >
-                        {venue}
-                      </span>
-                    ))}
-                  </div>
-                  <Button 
-                    onClick={() => openBookingModal(sport.name)}
-                    className="w-full bg-sports-green hover:bg-sports-green/90 text-white"
-                  >
-                    Book a Session
-                  </Button>
-                </div>
-              </div>
+            {sports?.map((sport) => (
+              <SportCard key={sport.id} sport={sport} />
             ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Button 
+              onClick={() => navigate('/sports')}
+              size="lg"
+              className="bg-sports-green hover:bg-sports-green/90 text-white rounded-full px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              View All Sports
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
@@ -304,4 +294,3 @@ const Home: React.FC = () => {
 };
 
 export default Home;
-
