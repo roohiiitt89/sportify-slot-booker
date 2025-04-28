@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client"; // Updated import
+import { supabase } from "@/integrations/supabase/client"; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 
@@ -88,6 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Initialize auth state from Supabase
   useEffect(() => {
+    console.log("Initializing auth state");
+    
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -97,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentSession?.user) {
           // Transform Supabase user to our User type
           const userInfo = await mapSupabaseUser(currentSession.user);
+          console.log("User info after mapping:", userInfo);
           setUser(userInfo);
         } else {
           setUser(null);
@@ -106,11 +109,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Then check for existing session
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession ? "Session exists" : "No session");
       setSession(currentSession);
       
       if (currentSession?.user) {
         // Transform Supabase user to our User type
         const userInfo = await mapSupabaseUser(currentSession.user);
+        console.log("Initial user info:", userInfo);
         setUser(userInfo);
       }
       
@@ -125,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function using Supabase
   const login = async (email: string, password: string) => {
+    console.log("Login attempt for email:", email);
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -133,15 +139,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Login error:", error);
         throw error;
       }
 
+      console.log("Login successful, data:", data);
       toast({
         title: "Login successful",
         description: `Welcome back${data.user ? ', ' + (data.user.user_metadata?.name || data.user.email?.split('@')[0] || '') : ''}!`,
       });
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("Login error details:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -150,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Signup function using Supabase
   const signup = async (name: string, email: string, password: string): Promise<void> => {
+    console.log("Signup attempt for:", email);
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -164,11 +173,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Signup error:", error);
         throw error;
       }
       
+      console.log("Signup successful, data:", data);
     } catch (error: any) {
-      console.error("Signup error:", error);
+      console.error("Signup error details:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -178,12 +189,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function using Supabase
   const logout = async () => {
     try {
+      console.log("Attempting logout");
       await supabase.auth.signOut();
+      console.log("Logout successful");
       toast({
         title: "Logged out",
         description: "You have been logged out successfully.",
       });
     } catch (error: any) {
+      console.error("Logout error:", error);
       toast({
         variant: "destructive",
         title: "Logout failed",

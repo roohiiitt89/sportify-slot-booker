@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import VenueCard from '@/components/VenueCard';
 import SportCard from '@/components/SportCard';
 import ForYouSection from '@/components/ForYouSection';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Home: React.FC = () => {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -35,30 +36,44 @@ const Home: React.FC = () => {
     setIsBookingModalOpen(true);
   };
 
-  const { data: venues } = useQuery({
+  const { data: venues, isLoading: venuesLoading, error: venuesError } = useQuery({
     queryKey: ['featured-venues'],
     queryFn: async () => {
+      console.log("Fetching featured venues");
+      
       const { data, error } = await supabase
         .from('venues')
         .select('*')
         .eq('is_active', true)
         .limit(4);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching venues:", error);
+        throw error;
+      }
+      
+      console.log("Fetched venues:", data);
       return data;
     }
   });
 
-  const { data: sports } = useQuery({
+  const { data: sports, isLoading: sportsLoading, error: sportsError } = useQuery({
     queryKey: ['featured-sports'],
     queryFn: async () => {
+      console.log("Fetching featured sports");
+      
       const { data, error } = await supabase
         .from('sports')
         .select('*')
         .eq('is_active', true)
         .limit(3);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching sports:", error);
+        throw error;
+      }
+      
+      console.log("Fetched sports:", data);
       return data;
     }
   });
@@ -106,11 +121,28 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {venues?.map((venue) => (
-              <VenueCard key={venue.id} venue={venue} />
-            ))}
-          </div>
+          {venuesError ? (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Failed to load venues. Please try again later.
+              </AlertDescription>
+            </Alert>
+          ) : venuesLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-sports-green" />
+            </div>
+          ) : venues && venues.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {venues.map((venue) => (
+                <VenueCard key={venue.id} venue={venue} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No venues available at the moment.</p>
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Button 
@@ -136,11 +168,28 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sports?.map((sport) => (
-              <SportCard key={sport.id} sport={sport} />
-            ))}
-          </div>
+          {sportsError ? (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Failed to load sports. Please try again later.
+              </AlertDescription>
+            </Alert>
+          ) : sportsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-sports-green" />
+            </div>
+          ) : sports && sports.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {sports.map((sport) => (
+                <SportCard key={sport.id} sport={sport} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No sports available at the moment.</p>
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Button 

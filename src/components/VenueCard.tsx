@@ -19,9 +19,16 @@ interface VenueCardProps {
 const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     console.log("Navigating to venue with ID:", venue.id);
-    navigate(`/venues/${venue.id}`);
+    try {
+      navigate(`/venues/${venue.id}`);
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
   };
 
   return (
@@ -47,10 +54,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
           {venue.description || `Visit ${venue.name} for an exceptional sports experience.`}
         </p>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClick();
-          }}
+          onClick={handleClick}
           className="mt-4 text-sports-green font-semibold hover:underline"
         >
           View Details

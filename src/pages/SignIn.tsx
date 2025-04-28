@@ -1,9 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import NavBar from '@/components/NavBar';
 import { useForm } from "react-hook-form";
@@ -14,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from "@/components/ui/input";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -31,8 +31,11 @@ const SignIn: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
+  console.log("SignIn component rendered, isLoggedIn:", isLoggedIn);
+  
   useEffect(() => {
     if (isLoggedIn) {
+      console.log("User is logged in, redirecting to home");
       navigate('/');
     }
   }, [isLoggedIn, navigate]);
@@ -46,15 +49,18 @@ const SignIn: React.FC = () => {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    console.log("Login form submitted with email:", values.email);
     setIsSubmitting(true);
     setAuthError(null);
     setShowVerification(false);
     
     try {
+      console.log("Attempting login...");
       await login(values.email, values.password);
+      console.log("Login successful, navigating to home");
       navigate('/');
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login error in component:', error);
       
       // Handle "Email not confirmed" error specifically
       if (error.message && error.message.includes("Email not confirmed")) {
@@ -71,6 +77,7 @@ const SignIn: React.FC = () => {
 
   const handleResendVerification = async () => {
     try {
+      console.log("Resending verification email to:", verificationEmail);
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: verificationEmail,
@@ -83,6 +90,7 @@ const SignIn: React.FC = () => {
         description: "Please check your inbox for the verification link.",
       });
     } catch (error: any) {
+      console.error("Resend verification error:", error);
       toast({
         variant: "destructive",
         title: "Failed to resend verification",
@@ -93,6 +101,7 @@ const SignIn: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log("Attempting Google sign in");
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -101,7 +110,9 @@ const SignIn: React.FC = () => {
       });
       
       if (error) throw error;
+      console.log("Google sign in initiated:", data);
     } catch (error: any) {
+      console.error("Google sign in error:", error);
       toast({
         variant: "destructive",
         title: "Google sign in failed",
