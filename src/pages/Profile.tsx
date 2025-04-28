@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +8,13 @@ import NavBar from '@/components/NavBar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/lib/supabaseClient";
 import { Loader2 } from 'lucide-react';
+import { toast } from "sonner";
 
 const Profile: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch user bookings
+  // Fetch user bookings with proper error handling
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['user-bookings', user?.id],
     queryFn: async () => {
@@ -24,15 +24,23 @@ const Profile: React.FC = () => {
         .from('bookings')
         .select(`
           *,
-          courts(*, venues(*), sports(*))
+          courts(
+            *,
+            venues(*),
+            sports(*)
+          )
         `)
         .eq('user_id', user.id)
-        .order('booking_date', { ascending: true });
+        .order('booking_date', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        toast.error("Failed to fetch bookings");
+        throw error;
+      }
+      
       return data || [];
     },
-    enabled: !!isLoggedIn && !!user?.id
+    enabled: !!isLoggedIn && !!user?.id,
   });
 
   // Filter bookings for upcoming and past

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -31,6 +30,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from 'react-router-dom';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -54,8 +54,6 @@ const bookingFormSchema = z.object({
   date: z.date({
     required_error: "Date is required",
   }),
-  name: z.string().optional(),
-  phone: z.string().optional(),
 });
 
 const BookingModal: React.FC<BookingModalProps> = ({ 
@@ -67,6 +65,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isLoggedIn, user } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm<z.infer<typeof bookingFormSchema>>({
     resolver: zodResolver(bookingFormSchema),
@@ -75,8 +74,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
       venue: initialVenue || "",
       court: "",
       date: new Date(),
-      name: "",
-      phone: "",
     },
   });
   
@@ -230,20 +227,32 @@ const BookingModal: React.FC<BookingModalProps> = ({
         venue: initialVenue || "",
         court: "",
         date: new Date(),
-        name: "",
-        phone: "",
       });
       setSelectedSlots([]);
     }
   }, [isOpen, initialSport, initialVenue, form]);
 
+  useEffect(() => {
+    if (isOpen && !isLoggedIn) {
+      toast.error("Please sign in to make a booking");
+      onClose();
+      navigate('/signin');
+    }
+  }, [isOpen, isLoggedIn, onClose, navigate]);
+
   const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
+    if (!isLoggedIn) {
+      toast.error("Please sign in to make a booking");
+      onClose();
+      navigate('/signin');
+      return;
+    }
+
     if (selectedSlots.length === 0) {
       toast.error("Please select at least one time slot");
       return;
     }
 
-    // Intentionally problematic booking logic
     setIsSubmitting(true);
 
     try {
@@ -251,19 +260,15 @@ const BookingModal: React.FC<BookingModalProps> = ({
         const slot = timeSlots.find(s => s.start_time === slotTime);
         if (!slot) return null;
         
-        // Problematic booking data - missing guest info for guests and incorrect user_id handling
         const bookingData = {
           court_id: selectedCourt,
-          // Intentionally problematic: Not setting user_id for authenticated users
-          // and not setting guest info for anonymous users
+          user_id: user?.id,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
           start_time: slot.start_time,
           end_time: slot.end_time,
           total_price: slot.price,
           status: 'pending'
         };
-        
-        console.log("Creating problematic booking with data:", bookingData);
         
         const { data, error } = await supabase
           .from('bookings')
@@ -272,7 +277,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
           .single();
         
         if (error) {
-          console.error("Booking error:", error);
           throw error;
         }
         
@@ -286,7 +290,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         toast.success(`Successfully booked ${successfulBookings.length} slot(s)!`);
         onClose();
       } else {
-        toast.error("Failed to create any bookings. Please try again.");
+        toast.error("Failed to create bookings. Please try again.");
       }
     } catch (error: any) {
       console.error('Booking error:', error);
