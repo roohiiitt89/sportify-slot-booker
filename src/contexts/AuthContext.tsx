@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Signup function using Supabase
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -126,7 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Don't show toast here, let the signup page handle the success display
-      return data;
       
     } catch (error: any) {
       console.error("Signup error:", error);
