@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,9 +46,11 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
         <p className="text-gray-600 text-sm line-clamp-2">
           {venue.description || `Visit ${venue.name} for an exceptional sports experience.`}
         </p>
-        {/* "Details" button to navigate to the venue detail page */}
         <button
-          onClick={handleClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
           className="mt-4 text-sports-green font-semibold hover:underline"
         >
           View Details

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
 interface BookingModalProps {
@@ -54,7 +55,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
   
+  // Format time from 24-hour to 12-hour format with AM/PM
   const formatTime = (time: string) => {
+    if (!time) return '';
+    
     const [hours, minutes] = time.split(':');
     const hoursNum = parseInt(hours);
     const ampm = hoursNum >= 12 ? 'PM' : 'AM';
@@ -234,7 +238,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
         
         const bookingData = {
           court_id: selectedCourt,
-          user_id: user?.id || '00000000-0000-0000-0000-000000000000', // Anonymous booking if not logged in
+          user_id: user?.id || null, // Anonymous booking if not logged in
           booking_date: format(date as Date, 'yyyy-MM-dd'),
           start_time: slot.start_time,
           end_time: slot.end_time,
@@ -247,7 +251,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
           .insert(bookingData)
           .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Booking error:", error);
+          throw error;
+        }
+        
         return data;
       });
       

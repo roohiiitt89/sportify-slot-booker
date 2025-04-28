@@ -6,7 +6,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import NavBar from '@/components/NavBar';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { Loader2, Clock, Users, Phone, MapPin, ArrowLeft } from 'lucide-react';
 import BookingModal from '@/components/BookingModal';
 import { toast } from "sonner";
@@ -185,7 +185,3 @@ const VenueDetail: React.FC = () => {
 };
 
 export default VenueDetail;
-
-
-
-
