@@ -1,28 +1,26 @@
-// VenueDetails.tsx
 
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react'; // Assuming you use lucide-react for icons
-import { Card, CardContent } from '@/components/ui/card'; // Assuming you use shadcn or similar
+import { useParams, useNavigate } from 'react-router-dom';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import NavBar from '@/components/NavBar';
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2, Clock, Users, Phone, MapPin, ArrowLeft } from 'lucide-react';
+import BookingModal from '@/components/BookingModal';
+import { toast } from "sonner";
 
-export default function VenueDetails() {
+const VenueDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
 
-  // Guard: If id is missing, show loading spinner
-  if (!id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  // Fetch Venue Data with useQuery in the object format
-  const { data: venue, isLoading, isError } = useQuery({
-    queryKey: ['venue', id], // Use queryKey to uniquely identify the query
+  const { data: venue, isLoading, error } = useQuery({
+    queryKey: ['venue', id],
     queryFn: async () => {
+      console.log("Fetching venue with ID:", id);
+      
       const { data, error } = await supabase
         .from('venues')
         .select(`
@@ -31,13 +29,27 @@ export default function VenueDetails() {
           sports(*)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Failed to load venue details");
+        throw error;
+      }
 
-      if (error) throw error;
+      if (!data) {
+        console.error("No venue found with ID:", id);
+        toast.error("Venue not found");
+        throw new Error("Venue not found");
+      }
+
+      console.log("Venue data:", data);
       return data;
-    }
+    },
+    retry: 1
   });
 
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,67 +58,132 @@ export default function VenueDetails() {
     );
   }
 
-  if (isError || !venue) {
+  // Handle error state
+  if (error) {
+    console.error("Error loading venue:", error);
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-lg">Something went wrong. Please try again later.</p>
+      <div className="min-h-screen bg-gray-50">
+        <NavBar />
+        <div className="container mx-auto px-4 pt-24 pb-16 text-center">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Venue</h2>
+          <p className="text-gray-600 mb-6">We couldn't load the venue details. Please try again later.</p>
+          <Button onClick={() => navigate('/venues')}>Return to Venues</Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      {/* Venue Main Details */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">{venue.name || "Unnamed Venue"}</h1>
-        <p className="text-gray-600">{venue.location || "Unknown Location"}</p>
+    <div className="min-h-screen bg-gray-50">
+      <NavBar />
+      <div className="container mx-auto px-4 pt-24 pb-16">
+        {venue && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </Button>
+            </div>
+
+            <Carousel className="mb-8">
+              <CarouselContent>
+                <CarouselItem>
+                  <img 
+                    src={venue.image_url || '/placeholder.svg'} 
+                    alt={venue.name} 
+                    className="w-full h-[400px] object-cover rounded-xl"
+                  />
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-8">
+                <div>
+                  <h1 className="text-4xl font-bold mb-4">{venue.name}</h1>
+                  <p className="text-gray-600">{venue.description}</p>
+                </div>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="text-2xl font-bold mb-4">Quick Info</h2>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-sports-green" />
+                        <span>{venue.opening_hours || 'Opening hours not specified'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Users className="h-5 w-5 text-sports-green" />
+                        <span>Capacity: {venue.capacity || 'Not specified'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-5 w-5 text-sports-green" />
+                        <span>{venue.contact_number || 'Contact number not specified'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-sports-green" />
+                        <span>{venue.location}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {venue.courts && venue.courts.length > 0 && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h2 className="text-2xl font-bold mb-4">Available Sports</h2>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {venue.sports && Array.from(new Set(venue.sports.map((sport: any) => sport.id))).map((sportId: string) => {
+                          const sport = venue.sports.find((s: any) => s.id === sportId);
+                          return sport && (
+                            <div 
+                              key={sport.id}
+                              className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-sports-green hover:shadow-md transition-all cursor-pointer"
+                              onClick={() => navigate(`/sports/${sport.id}`)}
+                            >
+                              <p className="font-medium text-center">{sport.name}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              <div>
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-bold mb-4">Book This Venue</h2>
+                    <Button 
+                      className="w-full bg-sports-green hover:bg-sports-green/90"
+                      onClick={() => setIsBookingModalOpen(true)}
+                    >
+                      Book Now
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Available Sports Section */}
-      {venue.sports && venue.sports.length > 0 && (
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Available Sports</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {venue.sports.map((sport: any) => (
-                <div 
-                  key={sport.id}
-                  className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-sports-green hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => navigate(`/sports/${sport.id}`)}
-                >
-                  <p className="font-medium text-center">{sport.name || "Unnamed Sport"}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Courts Section (optional, if you want to show courts too) */}
-      {venue.courts && venue.courts.length > 0 && (
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Available Courts</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {venue.courts.map((court: any) => (
-                <div 
-                  key={court.id}
-                  className="bg-white shadow-sm rounded-lg p-3 border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all"
-                >
-                  <p className="font-medium text-center">{court.name || "Unnamed Court"}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Other Venue Details (optional) */}
-      <div className="mt-10">
-        {/* Add other sections like About, Opening Hours, Contact Info, etc. */}
-      </div>
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        initialVenue={venue?.name}
+      />
     </div>
   );
-}
+};
+
+export default VenueDetail;
 
 
