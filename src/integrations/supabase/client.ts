@@ -6,12 +6,10 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://mhkwikrckmlfdfljsbfx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oa3dpa3Jja21sZmRmbGpzYmZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NzIwMTksImV4cCI6MjA2MTM0ODAxOX0.vVRmXCpCp5BSCx7GdrOg-EeP_AkyRTaUvckFoobchpg";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
+// Create a single instance of the Supabase client to be exported and reused across the app
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
   }

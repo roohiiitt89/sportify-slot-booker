@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +10,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from 'lucide-react';
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Profile: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch user bookings with proper error handling
+  // Fetch user bookings with proper error handling and improved nested structure
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['user-bookings', user?.id],
     queryFn: async () => {
@@ -25,9 +27,16 @@ const Profile: React.FC = () => {
         .select(`
           *,
           courts(
-            *,
-            venues(*),
-            sports(*)
+            id, 
+            name,
+            venues:venue_id(
+              id,
+              name
+            ),
+            sports:sport_id(
+              id,
+              name
+            )
           )
         `)
         .eq('user_id', user.id)
@@ -37,6 +46,9 @@ const Profile: React.FC = () => {
         toast.error("Failed to fetch bookings");
         throw error;
       }
+      
+      // Add additional console logging to debug data structure
+      console.log('Bookings data:', data);
       
       return data || [];
     },
@@ -190,7 +202,7 @@ const Profile: React.FC = () => {
   );
 };
 
-// Helper component to display each booking
+// Improved BookingItem component to correctly handle nested data
 const BookingItem = ({ booking, isCompleted = false }) => {
   // Format time to 12-hour format with AM/PM
   const formatTime = (time: string) => {
@@ -203,9 +215,11 @@ const BookingItem = ({ booking, isCompleted = false }) => {
     return `${hours12}:${minutes} ${ampm}`;
   };
 
+  // Extract data from the nested structure with fallbacks
   const court = booking.courts || {};
-  const venue = court.venues?.[0] || {};
-  const sport = court.sports?.[0] || {};
+  const venueName = court.venues?.name || 'Unknown Venue';
+  const sportName = court.sports?.name || 'Unknown Sport';
+  const courtName = court.name || 'Unknown Court';
   
   const bookingDate = new Date(booking.booking_date);
   const formattedDate = bookingDate.toLocaleDateString('en-US', { 
@@ -220,8 +234,8 @@ const BookingItem = ({ booking, isCompleted = false }) => {
       <div className={`p-4 ${isCompleted ? 'bg-gray-100' : 'bg-green-50'}`}>
         <div className="flex justify-between items-center">
           <div>
-            <h4 className="font-medium">{venue.name || 'Unknown Venue'}</h4>
-            <p className="text-sm text-gray-600">{sport.name || 'Unknown Sport'}</p>
+            <h4 className="font-medium">{venueName}</h4>
+            <p className="text-sm text-gray-600">{sportName} - {courtName}</p>
           </div>
           <div className="text-right">
             <div className={`inline-block px-2 py-1 rounded-full text-xs ${
