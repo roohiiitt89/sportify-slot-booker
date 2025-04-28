@@ -17,6 +17,7 @@ const NavBar: React.FC = () => {
   const { user, isLoggedIn, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,7 +90,7 @@ const NavBar: React.FC = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/bookings">My Bookings</Link>
                 </DropdownMenuItem>
-                {user?.role === 'admin' && (
+                {isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">Admin Panel</Link>
                   </DropdownMenuItem>
@@ -178,7 +179,7 @@ const NavBar: React.FC = () => {
                 >
                   My Bookings
                 </Link>
-                {user?.role === 'admin' && (
+                {isAdmin && (
                   <Link 
                     to="/admin" 
                     className="nav-link text-gray-700 pl-2 py-2"

@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient"; // Keep consistent with what's currently used
+import { supabase } from "@/lib/supabaseClient"; 
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 
@@ -30,33 +30,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
+  // Function to fetch user roles from the database
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error("Error fetching user roles:", error);
+        return null;
+      }
+      
+      return roles;
+    } catch (err) {
+      console.error("Error in fetchUserRoles:", err);
+      return null;
+    }
+  };
+
+  // Helper function to map Supabase user to our User type
+  const mapSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
+    // Fetch user roles from database
+    const roles = await fetchUserRoles(supabaseUser.id);
+    
+    // Determine the highest privilege role
+    let highestRole: 'user' | 'admin' | 'super_admin' = 'user';
+    
+    if (roles && roles.length > 0) {
+      if (roles.some(r => r.role === 'super_admin')) {
+        highestRole = 'super_admin';
+      } else if (roles.some(r => r.role === 'admin')) {
+        highestRole = 'admin';
+      }
+    }
+    
+    return {
+      id: supabaseUser.id,
+      name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+      email: supabaseUser.email || '',
+      role: highestRole
+    };
+  };
+  
   // Initialize auth state from Supabase
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event);
         setSession(currentSession);
         
         if (currentSession?.user) {
           // Transform Supabase user to our User type
-          const userInfo = mapSupabaseUser(currentSession.user);
+          const userInfo = await mapSupabaseUser(currentSession.user);
           setUser(userInfo);
         } else {
           setUser(null);
         }
-        
-        // Don't set isLoading to false here to avoid race conditions
       }
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       setSession(currentSession);
       
       if (currentSession?.user) {
         // Transform Supabase user to our User type
-        const userInfo = mapSupabaseUser(currentSession.user);
+        const userInfo = await mapSupabaseUser(currentSession.user);
         setUser(userInfo);
       }
       
@@ -68,16 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
-
-  // Helper function to map Supabase user to our User type
-  const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
-    return {
-      id: supabaseUser.id,
-      name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-      email: supabaseUser.email || '',
-      role: supabaseUser.user_metadata?.role || 'user'
-    };
-  };
 
   // Login function using Supabase
   const login = async (email: string, password: string) => {
@@ -98,8 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error: any) {
       console.error("Login error:", error);
-      
-      // Pass through the error for the login page to handle
       throw error;
     } finally {
       setIsLoading(false);
@@ -124,8 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         throw error;
       }
-
-      // Don't show toast here, let the signup page handle the success display
       
     } catch (error: any) {
       console.error("Signup error:", error);

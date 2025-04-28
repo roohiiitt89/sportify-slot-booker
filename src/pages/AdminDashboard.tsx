@@ -9,6 +9,7 @@ import BookingsTable from '@/components/AdminPanel/BookingsTable';
 import VenueManagement from '@/components/AdminPanel/VenueManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { toast } from "sonner";
 
 const AdminDashboard: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
@@ -24,8 +25,14 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/signin');
+      return;
     }
-  }, [isLoggedIn, navigate]);
+    
+    if (isLoggedIn && user && user.role !== 'admin' && user.role !== 'super_admin') {
+      toast.error("You don't have permission to access the admin panel");
+      navigate('/');
+    }
+  }, [isLoggedIn, navigate, user]);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -37,43 +44,15 @@ const AdminDashboard: React.FC = () => {
     navigate(`/admin?${params.toString()}`);
   }, [activeTab, navigate, selectedVenueId]);
 
-  const { data: userRoles, isLoading } = useQuery({
-    queryKey: ['user-roles', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error("Error fetching user roles:", error);
-        throw error;
-      }
-      
-      return roles;
-    },
-    enabled: !!user?.id
-  });
-
-  const isSuperAdmin = userRoles?.some(r => r.role === 'super_admin') || false;
-  const isAdmin = userRoles?.some(r => r.role === 'admin') || isSuperAdmin;
-
-  // Redirect non-admins
-  useEffect(() => {
-    if (!isLoading && userRoles && !isAdmin) {
-      navigate('/');
-    }
-  }, [isAdmin, isLoading, navigate, userRoles]);
-
-  if (isLoading || !userRoles) {
+  if (!isLoggedIn || !user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
+
+  const isSuperAdmin = user.role === 'super_admin';
 
   return (
     <div className="min-h-screen bg-gray-50">
