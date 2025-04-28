@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -48,7 +47,6 @@ interface TimeSlot {
   price: number;
 }
 
-// Create booking form schema with validation
 const bookingFormSchema = z.object({
   sport: z.string().min(1, "Sport is required"),
   venue: z.string().min(1, "Venue is required"),
@@ -70,7 +68,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isLoggedIn, user } = useAuth();
   
-  // Initialize react-hook-form
   const form = useForm<z.infer<typeof bookingFormSchema>>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
@@ -83,13 +80,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
     },
   });
   
-  // Get form values for queries
   const selectedSport = form.watch("sport");
   const selectedVenue = form.watch("venue");
   const selectedCourt = form.watch("court");
   const date = form.watch("date");
   
-  // Format time from 24-hour to 12-hour format with AM/PM
   const formatTime = (time: string) => {
     if (!time) return '';
     
@@ -100,7 +95,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
     return `${hours12}:${minutes} ${ampm}`;
   };
 
-  // Fetch sports from Supabase
   const { data: sports, isLoading: sportsLoading } = useQuery({
     queryKey: ['sports-for-booking'],
     queryFn: async () => {
@@ -114,7 +108,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   });
   
-  // Fetch venues from Supabase
   const { data: venues, isLoading: venuesLoading } = useQuery({
     queryKey: ['venues-for-booking'],
     queryFn: async () => {
@@ -128,7 +121,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
     }
   });
   
-  // Fetch courts based on selected venue and sport
   const { data: courts, isLoading: courtsLoading } = useQuery({
     queryKey: ['courts-for-booking', selectedVenue, selectedSport],
     queryFn: async () => {
@@ -159,7 +151,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
     enabled: !!selectedVenue && !!selectedSport
   });
   
-  // Fetch template slots for the selected court
   const { data: templateSlots = [], isLoading: slotsLoading } = useQuery({
     queryKey: ['template-slots', selectedCourt],
     queryFn: async () => {
@@ -181,14 +172,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
         id: slot.id,
         start_time: slot.start_time,
         end_time: slot.end_time,
-        available: true, // We'll check availability against bookings below
+        available: true,
         price: slot.price
       }));
     },
     enabled: !!selectedCourt && !!date
   });
   
-  // Fetch existing bookings for the selected date and court
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedCourt, date],
     queryFn: async () => {
@@ -208,10 +198,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
     enabled: !!selectedCourt && !!date
   });
   
-  // Process time slots and check availability
   const timeSlots: TimeSlot[] = React.useMemo(() => {
     return templateSlots.map(slot => {
-      // Check if this slot is already booked
       const isBooked = bookings.some(booking => 
         booking.start_time === slot.start_time && 
         booking.end_time === slot.end_time
@@ -236,7 +224,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
     return slot.available;
   };
   
-  // Initialize form with defaults when modal opens
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -252,20 +239,14 @@ const BookingModal: React.FC<BookingModalProps> = ({
   }, [isOpen, initialSport, initialVenue, form]);
 
   const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
-    // Validate selected slots
     if (selectedSlots.length === 0) {
       toast.error("Please select at least one time slot");
       return;
     }
 
-    // Validate guest info if not logged in
     if (!isLoggedIn) {
       if (!values.name || !values.phone) {
-        toast({
-          variant: "destructive",
-          title: "Missing information",
-          description: "Please provide your name and phone number.",
-        });
+        toast.error("Please provide your name and phone number.");
         return;
       }
     }
@@ -273,14 +254,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Create bookings for each selected slot
       const bookingPromises = selectedSlots.map(async (slotTime) => {
         const slot = timeSlots.find(s => s.start_time === slotTime);
         if (!slot) return null;
         
         const bookingData = {
           court_id: selectedCourt,
-          user_id: user?.id || null, // Can be null for non-logged in users
+          user_id: user?.id || null,
           guest_name: !isLoggedIn ? values.name : null,
           guest_phone: !isLoggedIn ? values.phone : null,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
