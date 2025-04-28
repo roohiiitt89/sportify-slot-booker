@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,9 +6,10 @@ import { ArrowRight } from 'lucide-react';
 import { sportsQuotes } from '@/data/mockData';
 import BookingModal from '@/components/BookingModal';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import VenueCard from '@/components/VenueCard';
 import SportCard from '@/components/SportCard';
+import ForYouSection from '@/components/ForYouSection';
 
 const Home: React.FC = () => {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
@@ -163,33 +163,7 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-gradient-to-br from-sports-navy to-sports-blue rounded-2xl p-8 text-white">
-            <h3 className="text-2xl font-bold mb-6">Your Recommendations</h3>
-            <p className="mb-4">Sign in to see personalized recommendations based on your booking history and preferences.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg hover:bg-white/20 transition-colors">
-                <h4 className="font-bold mb-2">Tennis at Elite Sports Complex</h4>
-                <p className="text-sm mb-3">Great courts with professional coaching</p>
-                <Button variant="secondary" size="sm" onClick={() => openBookingModal("Tennis", "Elite Sports Complex")}>
-                  Book Now
-                </Button>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg hover:bg-white/20 transition-colors">
-                <h4 className="font-bold mb-2">Swimming at Aquatic Center</h4>
-                <p className="text-sm mb-3">Olympic-sized pools available all day</p>
-                <Button variant="secondary" size="sm" onClick={() => openBookingModal("Swimming", "Aquatic Center")}>
-                  Book Now
-                </Button>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg hover:bg-white/20 transition-colors">
-                <h4 className="font-bold mb-2">Basketball at Fitness Hub</h4>
-                <p className="text-sm mb-3">Indoor courts with professional flooring</p>
-                <Button variant="secondary" size="sm" onClick={() => openBookingModal("Basketball", "Fitness Hub Arena")}>
-                  Book Now
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ForYouSection />
         </div>
       </section>
       

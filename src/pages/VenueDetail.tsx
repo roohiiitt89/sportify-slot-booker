@@ -19,8 +19,8 @@ const VenueDetail: React.FC = () => {
   const { data: venue, isLoading, error } = useQuery({
     queryKey: ['venue', id],
     queryFn: async () => {
-      console.log("Fetching venue with ID:", id);
-      
+      if (!id) throw new Error("No venue ID provided");
+
       const { data, error } = await supabase
         .from('venues')
         .select(`
@@ -43,10 +43,9 @@ const VenueDetail: React.FC = () => {
         throw new Error("Venue not found");
       }
 
-      console.log("Venue data:", data);
       return data;
     },
-    retry: 1
+    enabled: !!id
   });
 
   // Handle loading state
@@ -91,13 +90,21 @@ const VenueDetail: React.FC = () => {
 
             <Carousel className="mb-8">
               <CarouselContent>
-                <CarouselItem>
-                  <img 
-                    src={venue.image_url || '/placeholder.svg'} 
-                    alt={venue.name} 
-                    className="w-full h-[400px] object-cover rounded-xl"
-                  />
-                </CarouselItem>
+                {venue.image_url ? (
+                  <CarouselItem>
+                    <img 
+                      src={venue.image_url} 
+                      alt={venue.name} 
+                      className="w-full h-[400px] object-cover rounded-xl"
+                    />
+                  </CarouselItem>
+                ) : (
+                  <CarouselItem>
+                    <div className="w-full h-[400px] bg-gray-200 rounded-xl flex items-center justify-center">
+                      <p className="text-gray-500">No image available</p>
+                    </div>
+                  </CarouselItem>
+                )}
               </CarouselContent>
               <CarouselPrevious />
               <CarouselNext />
