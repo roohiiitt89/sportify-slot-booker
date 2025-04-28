@@ -14,8 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -32,6 +32,8 @@ const SignUp: React.FC = () => {
   const { signup, isLoggedIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -54,15 +56,40 @@ const SignUp: React.FC = () => {
   const onSubmit = async (values: SignupFormValues) => {
     setIsSubmitting(true);
     setAuthError(null);
+    setSignupSuccess(false);
     
     try {
       await signup(values.name, values.email, values.password);
-      navigate('/');
+      setSignupSuccess(true);
+      setVerificationEmail(values.email);
+      form.reset();
     } catch (error: any) {
       console.error('Signup error:', error);
       setAuthError(error.message || "Failed to sign up. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationEmail,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox for the verification link.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to resend verification",
+        description: error.message || "Could not send verification email. Please try again."
+      });
     }
   };
 
@@ -104,140 +131,168 @@ const SignUp: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {authError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{authError}</AlertDescription>
-                  </Alert>
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="John Doe" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+            {signupSuccess ? (
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Check your email</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  We've sent a verification link to <span className="font-medium">{verificationEmail}</span>. 
+                  Please check your inbox and click the link to verify your account.
+                </AlertDescription>
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleResendVerification}
+                    className="mr-2"
+                  >
+                    Resend verification email
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/signin')}
+                  >
+                    Go to Sign In
+                  </Button>
+                </div>
+              </Alert>
+            ) : (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  {authError && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
                   )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="you@example.com" 
-                          type="email"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Create a secure password" 
-                          type="password"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-xs text-gray-500">
-                        Password must be at least 6 characters long
-                      </p>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="acceptTerms"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox 
-                          checked={field.value} 
-                          onCheckedChange={field.onChange}
-                          id="terms"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel htmlFor="terms" className="text-sm font-medium leading-none">
-                          I accept the{" "}
-                          <Link to="/terms" className="text-sports-green hover:underline">
-                            terms and conditions
-                          </Link>
-                        </FormLabel>
+                  
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="John Doe" 
+                            {...field} 
+                          />
+                        </FormControl>
                         <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-sports-green hover:bg-sports-green/90"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                      Creating Account...
-                    </>
-                  ) : (
-                    'Create Account'
-                  )}
-                </Button>
-
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t"></span>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">Or sign up with</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="you@example.com" 
+                            type="email"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Create a secure password" 
+                            type="password"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-xs text-gray-500">
+                          Password must be at least 6 characters long
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="acceptTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={field.onChange}
+                            id="terms"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel htmlFor="terms" className="text-sm font-medium leading-none">
+                            I accept the{" "}
+                            <Link to="/terms" className="text-sports-green hover:underline">
+                              terms and conditions
+                            </Link>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
                   <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
+                    type="submit" 
+                    className="w-full bg-sports-green hover:bg-sports-green/90"
+                    disabled={isSubmitting}
                   >
-                    Google
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={handleFacebookSignIn}
-                  >
-                    Facebook
-                  </Button>
-                </div>
-              </form>
-            </Form>
+
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t"></span>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-gray-500">Or sign up with</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleGoogleSignIn}
+                    >
+                      Google
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleFacebookSignIn}
+                    >
+                      Facebook
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            )}
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-500">

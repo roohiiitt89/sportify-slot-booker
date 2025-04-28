@@ -35,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event);
         setSession(currentSession);
         
         if (currentSession?.user) {
@@ -96,11 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `Welcome back${data.user ? ', ' + (data.user.user_metadata?.name || data.user.email?.split('@')[0] || '') : ''}!`,
       });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Invalid email or password",
-      });
+      console.error("Login error:", error);
+      
+      // Pass through the error for the login page to handle
       throw error;
     } finally {
       setIsLoading(false);
@@ -126,17 +125,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      toast({
-        title: "Account created",
-        description: data.user ? "Your account has been created successfully!" : "Please check your email to confirm your account.",
-      });
+      // Don't show toast here, let the signup page handle the success display
+      return data;
       
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error.message || "Could not create your account. Please try again.",
-      });
+      console.error("Signup error:", error);
       throw error;
     } finally {
       setIsLoading(false);

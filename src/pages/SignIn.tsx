@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -27,6 +27,8 @@ const SignIn: React.FC = () => {
   const { login, isLoggedIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -47,15 +49,46 @@ const SignIn: React.FC = () => {
   const onSubmit = async (values: LoginFormValues) => {
     setIsSubmitting(true);
     setAuthError(null);
+    setShowVerification(false);
     
     try {
       await login(values.email, values.password);
       navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
-      setAuthError(error.message || "Failed to sign in. Please check your credentials.");
+      
+      // Handle "Email not confirmed" error specifically
+      if (error.message && error.message.includes("Email not confirmed")) {
+        setShowVerification(true);
+        setVerificationEmail(values.email);
+        setAuthError("Your email has not been confirmed. Please check your inbox for a verification link or request a new one.");
+      } else {
+        setAuthError(error.message || "Failed to sign in. Please check your credentials.");
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationEmail,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox for the verification link.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to resend verification",
+        description: error.message || "Could not send verification email. Please try again."
+      });
     }
   };
 
@@ -100,9 +133,21 @@ const SignIn: React.FC = () => {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {authError && (
-                  <Alert variant="destructive" className="mb-4">
+                  <Alert variant={showVerification ? "default" : "destructive"} className="mb-4">
                     <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>{showVerification ? "Email Verification Required" : "Sign In Failed"}</AlertTitle>
                     <AlertDescription>{authError}</AlertDescription>
+                    
+                    {showVerification && verificationEmail && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2" 
+                        onClick={handleResendVerification}
+                      >
+                        Resend verification email
+                      </Button>
+                    )}
                   </Alert>
                 )}
                 
