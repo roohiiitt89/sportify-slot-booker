@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from 'lucide-react';
+import { toast } from "sonner";
 
 interface Venue {
   id: string;
@@ -23,13 +24,23 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log("Navigating to venue with ID:", venue.id);
+    console.log("VenueCard: Attempting to navigate to venue with ID:", venue.id);
+    
     try {
+      // Add logging for debugging
+      console.log(`VenueCard: Navigation path: /venues/${venue.id}`);
       navigate(`/venues/${venue.id}`);
+      console.log("VenueCard: Navigation successful");
     } catch (error) {
-      console.error("Navigation error:", error);
+      console.error("VenueCard: Navigation error:", error);
+      toast.error("Failed to navigate to venue details. Please try again.");
     }
   };
+
+  if (!venue || !venue.id) {
+    console.error("VenueCard: Received invalid venue data:", venue);
+    return null;
+  }
 
   return (
     <Card 
@@ -41,6 +52,12 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
           src={venue.image_url || '/placeholder.svg'} 
           alt={venue.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = '/placeholder.svg';
+            console.log(`VenueCard: Image load error for venue ${venue.id}, using placeholder`);
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
       </div>

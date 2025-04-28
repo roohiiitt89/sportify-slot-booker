@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from 'lucide-react';
+import { toast } from "sonner";
 
 interface Sport {
   id: string;
@@ -23,13 +24,23 @@ const SportCard: React.FC<SportCardProps> = ({ sport }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log("Navigating to sport with ID:", sport.id);
+    console.log("SportCard: Attempting to navigate to sport with ID:", sport.id);
+    
     try {
+      // Add logging for debugging
+      console.log(`SportCard: Navigation path: /sports/${sport.id}`);
       navigate(`/sports/${sport.id}`);
+      console.log("SportCard: Navigation successful");
     } catch (error) {
-      console.error("Navigation error:", error);
+      console.error("SportCard: Navigation error:", error);
+      toast.error("Failed to navigate to sport details. Please try again.");
     }
   };
+
+  if (!sport || !sport.id) {
+    console.error("SportCard: Received invalid sport data:", sport);
+    return null;
+  }
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] group">
@@ -42,6 +53,7 @@ const SportCard: React.FC<SportCardProps> = ({ sport }) => {
             const target = e.target as HTMLImageElement;
             target.onerror = null;
             target.src = '/placeholder.svg';
+            console.log(`SportCard: Image load error for sport ${sport.id}, using placeholder`);
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>

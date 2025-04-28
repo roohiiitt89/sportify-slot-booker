@@ -14,3 +14,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Log when the client is initialized
+console.log("Supabase client initialized with URL:", SUPABASE_URL);
+
+// Monitor authentication state changes for debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("Supabase auth event:", event, session ? "Session exists" : "No session");
+});
+
+// Export both named and default exports for flexibility
+export default supabase;
