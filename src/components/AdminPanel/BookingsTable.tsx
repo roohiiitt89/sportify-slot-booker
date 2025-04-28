@@ -98,7 +98,7 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
           // Ensure proper null checking and typing for profiles
           profiles: booking.profiles && 
                    typeof booking.profiles === 'object' && 
-                   !('error' in booking.profiles) ? booking.profiles : null
+                   booking.profiles !== null ? booking.profiles : null
         };
         return typedBooking;
       });
