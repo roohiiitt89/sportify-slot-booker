@@ -25,9 +25,11 @@ const SportDetail: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    onError: () => {
-      toast.error("Failed to load sport details");
-      navigate('/sports');
+    meta: {
+      onError: () => {
+        toast.error("Failed to load sport details");
+        navigate('/sports');
+      }
     }
   });
 
