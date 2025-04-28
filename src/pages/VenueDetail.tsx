@@ -16,9 +16,11 @@ const VenueDetail: React.FC = () => {
   const navigate = useNavigate();
   const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
 
-  const { data: venue, isLoading } = useQuery({
+  const { data: venue, isLoading, error } = useQuery({
     queryKey: ['venue', id],
     queryFn: async () => {
+      console.log("Fetching venue with ID:", id);
+      
       const { data, error } = await supabase
         .from('venues')
         .select(`
@@ -30,25 +32,43 @@ const VenueDetail: React.FC = () => {
         .maybeSingle();
       
       if (error) {
+        console.error("Supabase error:", error);
         toast.error("Failed to load venue details");
-        navigate('/venues');
         throw error;
       }
 
       if (!data) {
+        console.error("No venue found with ID:", id);
         toast.error("Venue not found");
-        navigate('/venues');
         throw new Error("Venue not found");
       }
 
+      console.log("Venue data:", data);
       return data;
-    }
+    },
+    retry: 1
   });
 
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    console.error("Error loading venue:", error);
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavBar />
+        <div className="container mx-auto px-4 pt-24 pb-16 text-center">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Venue</h2>
+          <p className="text-gray-600 mb-6">We couldn't load the venue details. Please try again later.</p>
+          <Button onClick={() => navigate('/venues')}>Return to Venues</Button>
+        </div>
       </div>
     );
   }

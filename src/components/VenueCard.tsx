@@ -19,10 +19,15 @@ interface VenueCardProps {
 const VenueCard: React.FC<VenueCardProps> = ({ venue }) => {
   const navigate = useNavigate();
 
+  const handleClick = () => {
+    console.log("Navigating to venue with ID:", venue.id);
+    navigate(`/venues/${venue.id}`);
+  };
+
   return (
     <Card 
       className="overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl group"
-      onClick={() => navigate(`/venues/${venue.id}`)}
+      onClick={handleClick}
     >
       <div className="relative h-48 overflow-hidden">
         <img 

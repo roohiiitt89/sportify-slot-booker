@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import NavBar from '@/components/NavBar';
-import { userBookings } from '@/data/mockData';
 
 const Profile: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
@@ -79,92 +78,35 @@ const Profile: React.FC = () => {
                   </TabsList>
                   
                   <TabsContent value="upcoming">
-                    <div className="space-y-4">
-                      {userBookings.filter(b => b.status !== "completed").map(booking => (
-                        <div 
-                          key={booking.id} 
-                          className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-bold text-lg">{booking.sport}</h3>
-                              <p className="text-sm text-gray-600">{booking.venue} • {booking.court}</p>
-                            </div>
-                            <div className="text-right">
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                booking.status === 'confirmed' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-between items-center">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {booking.date} • {booking.slots.join(', ')}
-                              </p>
-                            </div>
-                            <div>
-                              <Button variant="outline" size="sm" className="mr-2">
-                                Reschedule
-                              </Button>
-                              <Button variant="destructive" size="sm">
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="text-center py-10">
+                      <h3 className="text-lg font-medium text-gray-700">No upcoming bookings</h3>
+                      <p className="mt-2 text-gray-500">Book a venue to see your bookings here</p>
+                      <Button 
+                        className="mt-4 bg-sports-green hover:bg-sports-green/90"
+                        onClick={() => navigate('/venues')}
+                      >
+                        Browse Venues
+                      </Button>
                     </div>
                   </TabsContent>
                   
                   <TabsContent value="past">
-                    <p className="text-gray-500 text-center py-6">No past bookings found.</p>
+                    <div className="text-center py-10">
+                      <h3 className="text-lg font-medium text-gray-700">No past bookings</h3>
+                      <p className="mt-2 text-gray-500">Your booking history will appear here</p>
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="all">
-                    <div className="space-y-4">
-                      {userBookings.map(booking => (
-                        <div 
-                          key={booking.id} 
-                          className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-bold text-lg">{booking.sport}</h3>
-                              <p className="text-sm text-gray-600">{booking.venue} • {booking.court}</p>
-                            </div>
-                            <div className="text-right">
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                booking.status === 'confirmed' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-between items-center">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {booking.date} • {booking.slots.join(', ')}
-                              </p>
-                            </div>
-                            <div>
-                              <Button variant="outline" size="sm" className="mr-2">
-                                Reschedule
-                              </Button>
-                              <Button variant="destructive" size="sm">
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="text-center py-10">
+                      <h3 className="text-lg font-medium text-gray-700">No bookings found</h3>
+                      <p className="mt-2 text-gray-500">Book a venue to see your bookings here</p>
+                      <Button 
+                        className="mt-4 bg-sports-green hover:bg-sports-green/90"
+                        onClick={() => navigate('/venues')}
+                      >
+                        Browse Venues
+                      </Button>
                     </div>
                   </TabsContent>
                 </Tabs>
