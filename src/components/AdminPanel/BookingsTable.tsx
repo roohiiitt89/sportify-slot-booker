@@ -15,6 +15,30 @@ interface BookingsTableProps {
   isSuperAdmin: boolean;
 }
 
+interface BookingWithRelations {
+  id: string;
+  booking_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  guest_name: string | null;
+  guest_phone: string | null;
+  courts: {
+    name: string;
+    venue_id: string;
+    venues: {
+      name: string;
+    };
+    sports: {
+      name: string;
+    };
+  };
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+}
+
 const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -37,12 +61,19 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
         
       // If not super admin, filter by venue
       if (!isSuperAdmin && venueId) {
-        query = query.in('court_id', 
-          supabase
-            .from('courts')
-            .select('id')
-            .eq('venue_id', venueId)
-        );
+        // Get all courts that belong to this venue
+        const { data: venueCourts } = await supabase
+          .from('courts')
+          .select('id')
+          .eq('venue_id', venueId);
+          
+        if (venueCourts && venueCourts.length > 0) {
+          const courtIds = venueCourts.map(court => court.id);
+          query = query.in('court_id', courtIds);
+        } else {
+          // No courts found for this venue, return empty array
+          return [];
+        }
       }
       
       const { data, error } = await query;
@@ -53,7 +84,7 @@ const BookingsTable: React.FC<BookingsTableProps> = ({ venueId, isSuperAdmin }) 
         throw error;
       }
       
-      return data || [];
+      return (data || []) as BookingWithRelations[];
     }
   });
 
