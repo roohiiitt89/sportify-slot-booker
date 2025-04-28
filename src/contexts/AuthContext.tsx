@@ -30,47 +30,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Function to fetch user roles from the database
-  const fetchUserRoles = async (userId: string) => {
-    try {
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-      
-      if (error) {
-        console.error("Error fetching user roles:", error);
-        return null;
-      }
-      
-      return roles;
-    } catch (err) {
-      console.error("Error in fetchUserRoles:", err);
-      return null;
-    }
-  };
-
-  // Helper function to map Supabase user to our User type
-  const mapSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
-    // Fetch user roles from database
-    const roles = await fetchUserRoles(supabaseUser.id);
+  // Transform Supabase user to our User type with a simpler approach
+  const mapSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
+    if (!supabaseUser) return null;
     
-    // Determine the highest privilege role
-    let highestRole: 'user' | 'admin' | 'super_admin' = 'user';
-    
-    if (roles && roles.length > 0) {
-      if (roles.some(r => r.role === 'super_admin')) {
-        highestRole = 'super_admin';
-      } else if (roles.some(r => r.role === 'admin')) {
-        highestRole = 'admin';
-      }
-    }
-    
+    // For now, default everyone to 'user' role to prevent login issues
     return {
       id: supabaseUser.id,
       name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
       email: supabaseUser.email || '',
-      role: highestRole
+      role: 'user' // Default role that won't block access
     };
   };
   
@@ -84,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (currentSession?.user) {
           // Transform Supabase user to our User type
-          const userInfo = await mapSupabaseUser(currentSession.user);
+          const userInfo = mapSupabaseUser(currentSession.user);
           setUser(userInfo);
         } else {
           setUser(null);
@@ -98,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (currentSession?.user) {
         // Transform Supabase user to our User type
-        const userInfo = await mapSupabaseUser(currentSession.user);
+        const userInfo = mapSupabaseUser(currentSession.user);
         setUser(userInfo);
       }
       
