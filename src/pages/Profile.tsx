@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ const Profile: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch user bookings
+  // Updated query to fetch user bookings with proper joins
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['user-bookings', user?.id],
     queryFn: async () => {
@@ -24,12 +23,19 @@ const Profile: React.FC = () => {
         .from('bookings')
         .select(`
           *,
-          courts(*, venues(*), sports(*))
+          courts:court_id (
+            *,
+            venues:venue_id (*),
+            sports:sport_id (*)
+          )
         `)
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching bookings:", error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!isLoggedIn && !!user?.id

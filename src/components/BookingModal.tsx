@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -54,8 +55,8 @@ const bookingFormSchema = z.object({
   date: z.date({
     required_error: "Date is required",
   }),
-  name: z.string().optional(),
-  phone: z.string().optional(),
+  name: z.string().min(1, "Name is required").optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").optional(),
 });
 
 const BookingModal: React.FC<BookingModalProps> = ({ 
@@ -243,7 +244,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
-    // Intentionally problematic booking logic
+    if (!isLoggedIn && (!values.name || !values.phone)) {
+      toast.error("Please provide your name and phone number for guest booking");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -251,11 +256,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
         const slot = timeSlots.find(s => s.start_time === slotTime);
         if (!slot) return null;
         
-        // Problematic booking data - missing guest info for guests and incorrect user_id handling
         const bookingData = {
           court_id: selectedCourt,
-          // Intentionally problematic: Not setting user_id for authenticated users
-          // and not setting guest info for anonymous users
+          user_id: isLoggedIn ? user?.id : null,
+          guest_name: !isLoggedIn ? values.name : null,
+          guest_phone: !isLoggedIn ? values.phone : null,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
           start_time: slot.start_time,
           end_time: slot.end_time,
@@ -263,7 +268,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
           status: 'pending'
         };
         
-        console.log("Creating problematic booking with data:", bookingData);
+        console.log("Creating booking with data:", bookingData);
         
         const { data, error } = await supabase
           .from('bookings')
