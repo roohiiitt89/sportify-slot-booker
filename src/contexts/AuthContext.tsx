@@ -1,6 +1,9 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabaseClient";
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 
 // Define user type
 export type User = {
@@ -16,55 +19,87 @@ type AuthContextType = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Check for existing session on mount
+  // Initialize auth state from Supabase
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem('sportify-user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        
+        if (currentSession?.user) {
+          // Transform Supabase user to our User type
+          const userInfo = mapSupabaseUser(currentSession.user);
+          setUser(userInfo);
+        } else {
+          setUser(null);
+        }
+        
+        // Don't set isLoading to false here to avoid race conditions
       }
-      setIsLoading(false);
-    };
+    );
 
-    checkAuth();
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      
+      if (currentSession?.user) {
+        // Transform Supabase user to our User type
+        const userInfo = mapSupabaseUser(currentSession.user);
+        setUser(userInfo);
+      }
+      
+      setIsLoading(false);
+    });
+
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Mock login function (replace with real auth later)
+  // Helper function to map Supabase user to our User type
+  const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
+    return {
+      id: supabaseUser.id,
+      name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+      email: supabaseUser.email || '',
+      role: supabaseUser.user_metadata?.role || 'user'
+    };
+  };
+
+  // Login function using Supabase
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user based on email
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: email.split('@')[0],
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        role: email.includes('admin') ? 'admin' : 'user',
-      };
+        password
+      });
       
-      setUser(mockUser);
-      localStorage.setItem('sportify-user', JSON.stringify(mockUser));
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Login successful",
-        description: `Welcome back, ${mockUser.name}!`,
+        description: `Welcome back${data.user ? ', ' + (data.user.user_metadata?.name || data.user.email?.split('@')[0] || '') : ''}!`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Invalid email or password",
+        description: error.message || "Invalid email or password",
       });
       throw error;
     } finally {
@@ -72,31 +107,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Mock signup function
+  // Signup function using Supabase
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulating API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role: 'user',
-      };
+        password,
+        options: {
+          data: {
+            name: name,
+            role: 'user'
+          }
+        }
+      });
       
-      setUser(newUser);
-      localStorage.setItem('sportify-user', JSON.stringify(newUser));
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Account created",
-        description: "Your account has been created successfully!",
+        description: data.user ? "Your account has been created successfully!" : "Please check your email to confirm your account.",
       });
-    } catch (error) {
+      
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: "Could not create your account. Please try again.",
+        description: error.message || "Could not create your account. Please try again.",
       });
       throw error;
     } finally {
@@ -104,14 +143,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('sportify-user');
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
+  // Logout function using Supabase
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: error.message || "Could not log you out. Please try again.",
+      });
+    }
   };
 
   return (
