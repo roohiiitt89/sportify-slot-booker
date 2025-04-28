@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import Venues from "./pages/Venues";
 import VenueDetail from "./pages/VenueDetail";
 import Sports from "./pages/Sports";
 import SportDetail from "./pages/SportDetail";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -29,10 +31,10 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/venues" element={<Venues />} />
-            {/* Add a dynamic route for Venue Details */}
             <Route path="/venues/:id" element={<VenueDetail />} />
             <Route path="/sports" element={<Sports />} />
             <Route path="/sports/:id" element={<SportDetail />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

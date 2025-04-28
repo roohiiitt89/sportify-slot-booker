@@ -69,14 +69,17 @@ const ForYouSection = () => {
       // Find similar venues based on sports the user has played
       let similarVenues = [];
       if (userSportIds.size > 0) {
-        const sportIdsArray = Array.from(userSportIds);
+        // Convert Set to Array of strings for the SQL IN clause
+        const sportIdsArray = Array.from(userSportIds).map(id => String(id));
+        const venueIdsArray = Array.from(userVenueIds).map(id => String(id));
+        
         const { data: sportBasedVenues } = await supabase
           .from('courts')
           .select(`
             venues:venue_id(*)
           `)
           .in('sport_id', sportIdsArray)
-          .not('venue_id', 'in', `(${Array.from(userVenueIds).join(',')})`)
+          .not('venue_id', 'in', venueIdsArray)
           .eq('is_active', true)
           .limit(5);
         
@@ -101,7 +104,7 @@ const ForYouSection = () => {
             .from('venues')
             .select('*')
             .ilike('location', `%${cityOrArea}%`)
-            .not('id', 'in', `(${Array.from(userVenueIds).join(',')})`)
+            .not('id', 'in', Array.from(userVenueIds).map(id => String(id)))
             .eq('is_active', true)
             .limit(3);
         });
