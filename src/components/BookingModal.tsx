@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -36,8 +35,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialSport?: string;
   initialVenue?: string;
+  initialSport?: string;
 }
 
 interface TimeSlot {
@@ -62,8 +61,8 @@ const bookingFormSchema = z.object({
 const BookingModal: React.FC<BookingModalProps> = ({ 
   isOpen, 
   onClose,
-  initialSport,
-  initialVenue
+  initialVenue,
+  initialSport
 }) => {
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -245,11 +244,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
       return;
     }
 
-    if (!isLoggedIn) {
-      if (!values.name || !values.phone) {
-        toast.error("Please provide your name and phone number.");
-        return;
-      }
+    if (!isLoggedIn && (!values.name || !values.phone)) {
+      toast.error("Please provide your name and phone number");
+      return;
     }
 
     setIsSubmitting(true);
@@ -276,7 +273,8 @@ const BookingModal: React.FC<BookingModalProps> = ({
         const { data, error } = await supabase
           .from('bookings')
           .insert(bookingData)
-          .select();
+          .select()
+          .single();
         
         if (error) {
           console.error("Booking error:", error);
@@ -290,7 +288,6 @@ const BookingModal: React.FC<BookingModalProps> = ({
       await Promise.all(bookingPromises);
       
       toast.success(`You have booked ${selectedSlots.length} slot(s) successfully!`);
-      
       onClose();
     } catch (error) {
       console.error('Booking error:', error);
