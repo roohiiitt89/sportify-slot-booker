@@ -15,36 +15,42 @@ export type Database = {
           court_id: string
           created_at: string
           end_time: string
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           start_time: string
           status: string | null
           total_price: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           booking_date: string
           court_id: string
           created_at?: string
           end_time: string
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           start_time: string
           status?: string | null
           total_price: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           booking_date?: string
           court_id?: string
           created_at?: string
           end_time?: string
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           start_time?: string
           status?: string | null
           total_price?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {

@@ -17,11 +17,21 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -38,22 +48,46 @@ interface TimeSlot {
   price: number;
 }
 
+// Create booking form schema with validation
+const bookingFormSchema = z.object({
+  sport: z.string().min(1, "Sport is required"),
+  venue: z.string().min(1, "Venue is required"),
+  court: z.string().min(1, "Court is required"),
+  date: z.date({
+    required_error: "Date is required",
+  }),
+  name: z.string().min(1, "Name is required").optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").optional(),
+});
+
 const BookingModal: React.FC<BookingModalProps> = ({ 
   isOpen, 
   onClose,
   initialSport,
   initialVenue
 }) => {
-  const [selectedSport, setSelectedSport] = useState(initialSport || "");
-  const [selectedVenue, setSelectedVenue] = useState(initialVenue || "");
-  const [selectedCourt, setSelectedCourt] = useState("");
-  const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const { isLoggedIn, user } = useAuth();
+  
+  // Initialize react-hook-form
+  const form = useForm<z.infer<typeof bookingFormSchema>>({
+    resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      sport: initialSport || "",
+      venue: initialVenue || "",
+      court: "",
+      date: new Date(),
+      name: "",
+      phone: "",
+    },
+  });
+  
+  // Get form values for queries
+  const selectedSport = form.watch("sport");
+  const selectedVenue = form.watch("venue");
+  const selectedCourt = form.watch("court");
+  const date = form.watch("date");
   
   // Format time from 24-hour to 12-hour format with AM/PM
   const formatTime = (time: string) => {
@@ -202,23 +236,31 @@ const BookingModal: React.FC<BookingModalProps> = ({
     return slot.available;
   };
   
+  // Initialize form with defaults when modal opens
   useEffect(() => {
-    // Reset selected slots when court or date changes
-    setSelectedSlots([]);
-  }, [selectedCourt, date]);
-
-  const handleSubmit = async () => {
-    if (!selectedSport || !selectedVenue || !selectedCourt || !date || selectedSlots.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Missing information",
-        description: "Please fill in all required fields and select at least one time slot.",
+    if (isOpen) {
+      form.reset({
+        sport: initialSport || "",
+        venue: initialVenue || "",
+        court: "",
+        date: new Date(),
+        name: "",
+        phone: "",
       });
+      setSelectedSlots([]);
+    }
+  }, [isOpen, initialSport, initialVenue, form]);
+
+  const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
+    // Validate selected slots
+    if (selectedSlots.length === 0) {
+      toast.error("Please select at least one time slot");
       return;
     }
 
+    // Validate guest info if not logged in
     if (!isLoggedIn) {
-      if (!name || !phone) {
+      if (!values.name || !values.phone) {
         toast({
           variant: "destructive",
           title: "Missing information",
@@ -238,7 +280,9 @@ const BookingModal: React.FC<BookingModalProps> = ({
         
         const bookingData = {
           court_id: selectedCourt,
-          user_id: user?.id || null, // Anonymous booking if not logged in
+          user_id: user?.id || null, // Can be null for non-logged in users
+          guest_name: !isLoggedIn ? values.name : null,
+          guest_phone: !isLoggedIn ? values.phone : null,
           booking_date: format(date as Date, 'yyyy-MM-dd'),
           start_time: slot.start_time,
           end_time: slot.end_time,
@@ -261,19 +305,12 @@ const BookingModal: React.FC<BookingModalProps> = ({
       
       await Promise.all(bookingPromises);
       
-      toast({
-        title: "Booking Successful",
-        description: `You have booked ${selectedSlots.length} slot(s) for ${selectedSport} at ${selectedVenue} on ${format(date as Date, "PPP")}`,
-      });
+      toast.success(`You have booked ${selectedSlots.length} slot(s) successfully!`);
       
       onClose();
     } catch (error) {
       console.error('Booking error:', error);
-      toast({
-        variant: "destructive",
-        title: "Booking Failed",
-        description: "There was an error processing your booking. Please try again.",
-      });
+      toast.error("There was an error processing your booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -289,192 +326,246 @@ const BookingModal: React.FC<BookingModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-6 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sport">Select Sport</Label>
-              <Select 
-                value={selectedSport} 
-                onValueChange={setSelectedSport}
-                disabled={sportsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a sport" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sports?.map(sport => (
-                    <SelectItem key={sport.id} value={sport.name}>
-                      {sport.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="venue">Select Venue</Label>
-              <Select 
-                value={selectedVenue} 
-                onValueChange={setSelectedVenue}
-                disabled={venuesLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  {venues?.map(venue => (
-                    <SelectItem key={venue.id} value={venue.name}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="court">Select Court</Label>
-              <Select 
-                value={selectedCourt} 
-                onValueChange={setSelectedCourt}
-                disabled={!selectedVenue || !selectedSport || courtsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a court" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courts?.map(court => (
-                    <SelectItem key={court.id} value={court.id}>
-                      {court.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Select Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Available Time Slots</Label>
-            <p className="text-sm text-gray-500">Select one or more time slots</p>
-            
-            {slotsLoading ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-6 w-6 animate-spin text-sports-green" />
-              </div>
-            ) : timeSlots.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {timeSlots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    className={`p-3 rounded-md text-center cursor-pointer transition-colors ${
-                      !isSlotAvailable(slot)
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : selectedSlots.includes(slot.start_time)
-                        ? 'bg-sports-green text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                    onClick={() => {
-                      if (isSlotAvailable(slot)) {
-                        handleSlotSelection(slot.start_time);
-                      }
-                    }}
-                  >
-                    <div>{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</div>
-                    <div className="text-xs mt-1">
-                      {isSlotAvailable(slot) 
-                        ? `₹${slot.price}` 
-                        : 'Booked'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 bg-gray-50 rounded-md text-center">
-                {selectedCourt 
-                  ? "No available slots for this selection." 
-                  : "Select a court to see available slots."}
-              </div>
-            )}
-            
-            {selectedSlots.length > 0 && (
-              <div className="mt-2 p-2 bg-gray-50 rounded-md">
-                <p className="font-medium text-sm">
-                  Selected: {selectedSlots.length} slots
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Total: ₹{selectedSlots.reduce((sum, slotTime) => {
-                    const slot = timeSlots.find(s => s.start_time === slotTime);
-                    return sum + (slot?.price || 0);
-                  }, 0)}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {!isLoggedIn && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Your Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="sport"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Sport</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={sportsLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a sport" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {sports?.map(sport => (
+                          <SelectItem key={sport.id} value={sport.name}>
+                            {sport.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Enter your phone number"
+              <FormField
+                control={form.control}
+                name="venue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Venue</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={venuesLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a venue" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {venues?.map(venue => (
+                          <SelectItem key={venue.id} value={venue.name}>
+                            {venue.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="court"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Court</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!selectedVenue || !selectedSport || courtsLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a court" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {courts?.map(court => (
+                          <SelectItem key={court.id} value={court.id}>
+                            {court.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Select Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          disabled={(date) => date < new Date()}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label>Available Time Slots</Label>
+              <p className="text-sm text-gray-500">Select one or more time slots</p>
+              
+              {slotsLoading ? (
+                <div className="flex items-center justify-center p-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-sports-green" />
+                </div>
+              ) : timeSlots.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {timeSlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      className={`p-3 rounded-md text-center cursor-pointer transition-colors ${
+                        !isSlotAvailable(slot)
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : selectedSlots.includes(slot.start_time)
+                          ? 'bg-sports-green text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      onClick={() => {
+                        if (isSlotAvailable(slot)) {
+                          handleSlotSelection(slot.start_time);
+                        }
+                      }}
+                    >
+                      <div>{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</div>
+                      <div className="text-xs mt-1">
+                        {isSlotAvailable(slot) 
+                          ? `₹${slot.price}` 
+                          : 'Booked'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-md text-center">
+                  {selectedCourt 
+                    ? "No available slots for this selection." 
+                    : "Select a court to see available slots."}
+                </div>
+              )}
+              
+              {selectedSlots.length > 0 && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-md">
+                  <p className="font-medium text-sm">
+                    Selected: {selectedSlots.length} slots
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total: ₹{selectedSlots.reduce((sum, slotTime) => {
+                      const slot = timeSlots.find(s => s.start_time === slotTime);
+                      return sum + (slot?.price || 0);
+                    }, 0)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {!isLoggedIn && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Name</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your full name" 
+                          {...field} 
+                          required={!isLoggedIn}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your phone number" 
+                          {...field} 
+                          required={!isLoggedIn}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || !selectedSport || !selectedVenue || !selectedCourt || !date || selectedSlots.length === 0}
-            className="bg-sports-green hover:bg-sports-green/90"
-          >
-            {isSubmitting ? "Booking..." : "Book Now"}
-          </Button>
-        </DialogFooter>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting || !selectedSport || !selectedVenue || !selectedCourt || !date || selectedSlots.length === 0}
+                className="bg-sports-green hover:bg-sports-green/90"
+              >
+                {isSubmitting ? "Booking..." : "Book Now"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
